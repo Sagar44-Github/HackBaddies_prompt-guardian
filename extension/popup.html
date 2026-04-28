@@ -55,7 +55,7 @@
     /* Stats Cards */
     .stats {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 12px;
       margin-bottom: 24px;
     }
@@ -260,6 +260,92 @@
     .ticker-title { color: #CBD5E1; vertical-align: middle; }
     .ticker-time  { color: #475569; font-size: 9px; margin-left: 5px; vertical-align: middle; }
 
+    /* ── HONEYPOT MODE TOGGLE ── */
+    .honeypot-section {
+      background: linear-gradient(135deg, #1E293B 0%, #2D1B0E 100%);
+      border: 1px solid #78350F;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+      transition: box-shadow 0.3s ease;
+    }
+    .honeypot-section.active {
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+    }
+    .honeypot-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .honeypot-title {
+      color: #F59E0B;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+    .honeypot-subtitle {
+      color: #A16207;
+      font-size: 10px;
+      margin-top: 2px;
+    }
+    /* Toggle Switch */
+    .honeypot-toggle-wrapper {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+    #honeypot-toggle {
+      opacity: 0;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      z-index: 2;
+    }
+    .honeypot-toggle-track {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 44px;
+      height: 24px;
+      background: #334155;
+      border-radius: 12px;
+      transition: background 0.3s ease;
+    }
+    .honeypot-toggle-knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    #honeypot-toggle:checked + .honeypot-toggle-track {
+      background: #F59E0B;
+    }
+    #honeypot-toggle:checked + .honeypot-toggle-track + .honeypot-toggle-knob {
+      transform: translateX(20px);
+    }
+    #honeypot-toggle:checked + .honeypot-toggle-track {
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+    }
+    .honeypot-status {
+      margin-top: 10px;
+      font-size: 11px;
+      color: #94A3B8;
+    }
+    .honeypot-status.active {
+      color: #F59E0B;
+    }
+    .honeypot-count {
+      margin-top: 4px;
+      font-size: 10px;
+      color: #64748B;
+    }
+
   </style>
 </head>
 <body>
@@ -292,6 +378,28 @@
         <div class="stat-label">Safe</div>
       </div>
 
+      <div class="stat-box">
+        <div class="stat-number" id="multilingual" style="color:#7C3AED">0</div>
+        <div class="stat-label">Multilingual</div>
+      </div>
+
+    </div>
+
+    <!-- Honeypot Mode Section -->
+    <div class="honeypot-section" id="honeypot-section">
+      <div class="honeypot-header">
+        <div>
+          <div class="honeypot-title">🍯 HONEYPOT MODE</div>
+          <div class="honeypot-subtitle">Allow threats through for intelligence gathering</div>
+        </div>
+        <div class="honeypot-toggle-wrapper">
+          <input type="checkbox" id="honeypot-toggle">
+          <div class="honeypot-toggle-track"></div>
+          <div class="honeypot-toggle-knob"></div>
+        </div>
+      </div>
+      <div class="honeypot-status" id="honeypot-status">🔒 Normal Protection — Threats are blocked</div>
+      <div class="honeypot-count" id="honeypot-count">Honeypot events this session: 0</div>
     </div>
 
     <!-- Attack Breakdown Mini Chart -->
@@ -301,6 +409,16 @@
     <div id="mini-chart-container" style="display:flex;justify-content:center;margin-bottom:12px;min-height:130px;align-items:center;">
       <!-- renderAttackChart() populates this -->
     </div>
+
+    <!-- Session Timeline Preview -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
+      <div class="section-title" style="margin:0;">SESSION TIMELINE</div>
+      <button id="mini-open-dashboard" style="background:none;border:none;color:#60A5FA;font-size:11px;cursor:pointer;padding:0;">View Full →</button>
+    </div>
+    <div
+      id="mini-timeline-container"
+      style="width:100%;height:60px;position:relative;background:#0F1729;border:1px solid #1E293B;border-radius:8px;overflow:hidden;margin-top:8px;margin-bottom:12px;"
+    ></div>
 
     <!-- Recent Activity -->
     <div class="section-title">

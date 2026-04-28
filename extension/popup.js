@@ -9,12 +9,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Global threat intelligence ticker (load once)
     loadThreatFeed();
+
+    // ── HONEYPOT MODE INITIALIZATION ─────────────────────────────────────
+    initHoneypotMode();
+
+    const miniOpenDashboard = document.getElementById("mini-open-dashboard");
+    if (miniOpenDashboard) {
+        miniOpenDashboard.addEventListener("click", () => {
+            chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
+        });
+    }
 });
 
 function loadData() {
     const totalEl = document.getElementById("total");
     const blockedEl = document.getElementById("blocked");
     const safeEl = document.getElementById("safe");
+    const multilingualEl = document.getElementById("multilingual");
     const historyContainer = document.getElementById("history");
 
     chrome.storage.local.get(["pg_history"], (data) => {
@@ -25,10 +36,12 @@ function loadData() {
             (e) => e.action === "BLOCK" || e.action === "WARN"
         ).length;
         const safe = history.filter((e) => e.action === "ALLOW").length;
+        const multilingualCount = history.filter((e) => (e?.is_multilingual_attack ?? false) === true).length;
 
         totalEl.textContent = history.length;
         blockedEl.textContent = blocked;
         safeEl.textContent = safe;
+        if (multilingualEl) multilingualEl.textContent = multilingualCount;
 
         // ── Mini Attack Breakdown Chart ───────────────────────────────────
         // Build attack type frequency from non-ALLOW entries
@@ -52,6 +65,9 @@ function loadData() {
                 animationDuration: 700,
             });
         }
+
+        // ── Session Timeline Preview ───────────────────────────────────────
+        renderMiniTimeline(history);
 
         // ── Render history entries ────────────────────────────────────
         if (history.length === 0) {
@@ -94,6 +110,67 @@ function loadData() {
 
             historyContainer.appendChild(div);
         });
+    });
+}
+
+// ── MINI TIMELINE PREVIEW ───────────────────────────────────────────────────
+function renderMiniTimeline(history) {
+    const container = document.getElementById("mini-timeline-container");
+    if (!container) return;
+    container.innerHTML = "";
+
+    if (!history || history.length === 0) {
+        const empty = document.createElement("div");
+        empty.textContent = "No events";
+        empty.style.position = "absolute";
+        empty.style.left = "50%";
+        empty.style.top = "50%";
+        empty.style.transform = "translate(-50%, -50%)";
+        empty.style.color = "#64748B";
+        empty.style.fontSize = "10px";
+        container.appendChild(empty);
+        return;
+    }
+
+    const centerLine = document.createElement("div");
+    centerLine.style.position = "absolute";
+    centerLine.style.left = "0";
+    centerLine.style.top = "50%";
+    centerLine.style.width = "100%";
+    centerLine.style.height = "1px";
+    centerLine.style.background = "#334155";
+    centerLine.style.transform = "translateY(-50%)";
+    container.appendChild(centerLine);
+
+    const chronological = [...history].reverse();
+    const startTime = new Date(chronological[0].timestamp).getTime();
+    const endTime = new Date(chronological[chronological.length - 1].timestamp).getTime();
+    const duration = endTime - startTime;
+    const width = container.clientWidth || 348;
+
+    chronological.forEach((event, idx) => {
+        let x;
+        if (duration === 0) {
+            const step = chronological.length > 1 ? (width - 8) / (chronological.length - 1) : width / 2;
+            x = chronological.length > 1 ? idx * step : step;
+        } else {
+            const eventTime = new Date(event.timestamp).getTime();
+            x = ((eventTime - startTime) / duration) * (width - 8);
+        }
+
+        const dot = document.createElement("div");
+        dot.style.position = "absolute";
+        dot.style.width = "6px";
+        dot.style.height = "6px";
+        dot.style.borderRadius = "50%";
+        dot.style.top = "50%";
+        dot.style.transform = "translateY(-50%)";
+        dot.style.left = `${Math.max(0, Math.min(width - 8, x))}px`;
+        dot.style.background =
+            event.action === "BLOCK" ? "#EF4444" :
+            event.action === "WARN" ? "#F59E0B" :
+            "#10B981";
+        container.appendChild(dot);
     });
 }
 
@@ -230,3 +307,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// ── HONEYPOT MODE STATE MANAGEMENT ────────────────────────────────────────────
+function initHoneypotMode() {
+    const toggle = document.getElementById('honeypot-toggle');
+    const statusEl = document.getElementById('honeypot-status');
+    const countEl = document.getElementById('honeypot-count');
+    const sectionEl = document.getElementById('honeypot-section');
+    
+    if (!toggle || !statusEl || !countEl || !sectionEl) return;
+
+    // Read honeypot mode state from storage
+    chrome.storage.local.get(['honeypot_mode', 'pg_history'], (data) => {
+        const isHoneypot = data.honeypot_mode || false;
+        const history = data.pg_history || [];
+
+        // Set toggle state
+        toggle.checked = isHoneypot;
+
+        // Update status text
+        updateHoneypotStatus(isHoneypot, statusEl, sectionEl);
+
+        // Count honeypot events from history
+        const honeypotCount = history.filter(e => e.user_action === 'honeypot-tracked' || e.honeypot === true).length;
+        countEl.textContent = `Honeypot events this session: ${honeypotCount}`;
+    });
+
+    // Toggle event listener
+    toggle.addEventListener('change', () => {
+        const newState = toggle.checked;
+        
+        // Save to storage
+        chrome.storage.local.set({ honeypot_mode: newState });
+
+        // Update UI immediately
+        updateHoneypotStatus(newState, statusEl, sectionEl);
+
+        // If turning ON, show brief confirmation
+        if (newState) {
+            const originalText = statusEl.textContent;
+            statusEl.textContent = '✅ Honeypot Mode activated';
+            statusEl.classList.add('active');
+            sectionEl.classList.add('active');
+            
+            setTimeout(() => {
+                updateHoneypotStatus(true, statusEl, sectionEl);
+            }, 1000);
+        } else {
+            sectionEl.classList.remove('active');
+        }
+    });
+}
+
+function updateHoneypotStatus(isActive, statusEl, sectionEl) {
+    if (isActive) {
+        statusEl.textContent = '⚠️ Research Mode — Threats logged but allowed through';
+        statusEl.classList.add('active');
+        sectionEl.classList.add('active');
+    } else {
+        statusEl.textContent = '🔒 Normal Protection — Threats are blocked';
+        statusEl.classList.remove('active');
+        sectionEl.classList.remove('active');
+    }
+}

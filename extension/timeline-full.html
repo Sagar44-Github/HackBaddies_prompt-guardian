@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prompt Guardian — Full Timeline</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #0A0E1A;
+      color: #E2E8F0;
+      font-family: Inter, "Segoe UI", sans-serif;
+      padding: 18px 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    #back-btn {
+      position: absolute;
+      top: 18px;
+      left: 24px;
+      background: transparent;
+      color: #60A5FA;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    #back-btn:hover { background: #1E293B; }
+    h1 {
+      text-align: center;
+      font-size: 20px;
+      color: #F8FAFC;
+      letter-spacing: 0.4px;
+      margin-top: 10px;
+    }
+    #session-stats {
+      text-align: center;
+      font-size: 12px;
+      color: #94A3B8;
+      font-family: "JetBrains Mono", Consolas, monospace;
+    }
+    #full-timeline-container {
+      height: 80vh;
+      width: 100%;
+      background: #0F1729;
+      border: 1px solid #1E293B;
+      border-radius: 12px;
+      padding: 10px;
+      overflow: hidden;
+    }
+    footer {
+      text-align: center;
+      color: #64748B;
+      font-size: 11px;
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+  <button id="back-btn">← Back to Dashboard</button>
+  <h1>⏱️ PROMPT GUARDIAN — SESSION ATTACK TIMELINE</h1>
+  <div id="session-stats">Session Duration: 0m | Total Events: 0 | Threats Blocked: 0</div>
+
+  <div id="full-timeline-container"></div>
+
+  <footer>Prompt Guardian v1.0 — hover dots for details, click to pin, use zoom controls to explore</footer>
+
+  <script src="timeline.js"></script>
+  <script>
+    document.getElementById('back-btn').addEventListener('click', () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.close();
+      }
+    });
+
+    chrome.storage.local.get(['pg_history'], (data) => {
+      const history = data.pg_history || [];
+      const events = [...history].reverse();
+      const start = events.length ? new Date(events[0].timestamp) : new Date();
+      const end = events.length ? new Date(events[events.length - 1].timestamp) : new Date();
+      const durationMins = Math.round((end - start) / 60000);
+      const blocked = history.filter((entry) => entry.action === 'BLOCK').length;
+
+      document.getElementById('session-stats').textContent =
+        `Session Duration: ${durationMins}m | Total Events: ${history.length} | Threats Blocked: ${blocked}`;
+
+      if (window.renderSeverityTimeline) {
+        window.renderSeverityTimeline('full-timeline-container', events, {
+          animationDelay: 40,
+          enableZoom: true,
+          enablePlayback: true
+        });
+      }
+    });
+  </script>
+</body>
+</html>

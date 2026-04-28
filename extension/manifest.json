@@ -42,9 +42,12 @@
             "resources": [
                 "dashboard.html",
                 "dashboard.js",
+                "timeline.js",
+                "timeline-full.html",
                 "report.html",
                 "report.js",
-                "chart.js"
+                "chart.js",
+                "radar.js"
             ],
             "matches": ["<all_urls>"]
         }

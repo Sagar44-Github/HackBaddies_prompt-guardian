@@ -52,6 +52,26 @@ async function interceptPrompt(e) {
         const result = await response.json();
         hideLoadingIndicator();
 
+        // ── HONEYPOT MODE CHECK ─────────────────────────────────────────
+        const hpData = await new Promise(resolve => chrome.storage.local.get(['honeypot_mode'], resolve));
+        const isHoneypot = hpData.honeypot_mode || false;
+
+        if (isHoneypot && result.action === 'BLOCK') {
+            // Honeypot override: allow threat through but log it
+            result.action = 'ALLOW';
+            result.honeypot = true;
+            result.honeypot_note = 'Logged in Honeypot Mode — threat allowed for analysis';
+            
+            // Log with honeypot-tracked user action
+            logToHistory(promptText, result, 'honeypot-tracked', () => {
+                showHoneypotToast(result);
+                proceedWithSend(sel);
+            });
+            
+            isAnalyzing = false;
+            return;
+        }
+
         if (result.action === 'ALLOW') {
             showSafeBadge(result.risk_score || 0);
             logToHistory(promptText, result, 'auto', () => {
@@ -59,10 +79,10 @@ async function interceptPrompt(e) {
             });
         } else if (result.action === 'WARN') {
             logToHistory(promptText, result);
-            showWarningOverlay(promptText, result, sel, inputEl);
+            await showWarningOverlay(promptText, result, sel, inputEl, isHoneypot);
         } else {
             logToHistory(promptText, result);
-            showBlockOverlay(promptText, result, sel, inputEl);
+            await showBlockOverlay(promptText, result, sel, inputEl);
         }
 
     } catch (err) {
@@ -76,8 +96,31 @@ async function interceptPrompt(e) {
 }
 
 // ---------------- OVERLAYS ----------------
-function showBlockOverlay(original, result, sel, inputEl) {
+// ── HELPER: LOAD RADAR.JS DYNAMICALLY ─────────────────────────────────────
+async function loadRadarChart() {
+    if (window.renderRadarChart) return; // Already loaded
+    
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('radar.js');
+    document.head.appendChild(script);
+    
+    // Wait for script to load
+    await new Promise(resolve => {
+        script.onload = resolve;
+        script.onerror = resolve; // Continue even if it fails
+        setTimeout(resolve, 200); // Fallback timeout
+    });
+}
+
+async function showBlockOverlay(original, result, sel, inputEl) {
     document.getElementById('pg-overlay')?.remove();
+
+    // Play alert sound and show browser notification
+    playAlertSound();
+    showBrowserNotification(result);
+
+    // Load radar.js dynamically if not already loaded
+    await loadRadarChart();
 
     const overlay = document.createElement('div');
     overlay.id = 'pg-overlay';
@@ -96,14 +139,25 @@ function showBlockOverlay(original, result, sel, inputEl) {
 
     overlay.innerHTML = `
     <div class="pg-modal">
-      <div class="pg-header danger">🚨 Threat Detected — ${attackLabel}</div>
+      <div class="pg-header danger">${result.is_multilingual_attack ? `🛡️ Prompt Guardian — THREAT DETECTED ${result.language_emoji || '🌐'}` : '🛡️ Prompt Guardian — THREAT DETECTED'}</div>
       <div class="pg-body">
         <div class="pg-score-row">
           <div class="pg-score danger">Risk: ${riskScore}%</div>
           <div class="pg-confidence">${result.confidence || ''} confidence</div>
         </div>
+        <div class="pg-layers" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <span style="background:#1E293B;color:#93C5FD;padding:5px 10px;border-radius:6px;font-size:11px;">Pattern ${Math.round((result.pattern_score || 0) * 100)}%</span>
+          <span style="background:#1E293B;color:#A7F3D0;padding:5px 10px;border-radius:6px;font-size:11px;">Semantic ${Math.round((result.groq_score || 0) * 100)}%</span>
+          <span style="background:#1E293B;color:#FCA5A5;padding:5px 10px;border-radius:6px;font-size:11px;">${result.action || 'BLOCK'}</span>
+          ${result.is_multilingual_attack ? `<span style="background:#7C3AED;color:white;padding:5px 12px;border-radius:6px;font-size:12px;">${result.language_emoji || '🌐'} ${result.detected_language || 'Unknown'} Attack</span>` : ''}
+        </div>
+
+        <!-- Radar Chart Container -->
+        <div id="pg-radar-container" style="display:flex;justify-content:center;margin:12px 0;"></div>
 
         <div class="pg-explanation">${escapeHtml(explanation)}</div>
+
+        ${result.translation_hint ? `<div class="pg-label" style="background:#1E293B;padding:8px;border-radius:6px;margin-top:8px;border-left:3px solid #7C3AED;">🌐 Translation hint: "${escapeHtml(result.translation_hint)}"</div>` : ''}
 
         ${isUsefulSanitized ? `
         <div class="pg-sanitized-label">Sanitized version (injection removed):</div>
@@ -123,6 +177,30 @@ function showBlockOverlay(original, result, sel, inputEl) {
     injectStyles();
     document.body.appendChild(overlay);
 
+    // Render radar chart if available
+    if (window.renderRadarChart) {
+        const radarAxes = [
+            { label: 'Pattern', value: Math.round((result.pattern_score || 0) * 100), color: '#F59E0B' },
+            { label: 'AI Analysis', value: Math.round((result.groq_score || 0) * 100), color: '#3B82F6' },
+            { label: 'Risk Score', value: Math.round(result.risk_score || 0), color: '#EF4444' }
+        ];
+        
+        // Add language confidence axis if multilingual
+        if (result.is_multilingual_attack && result.language_confidence) {
+            radarAxes.push({ label: 'Language', value: Math.round(result.language_confidence * 100), color: '#7C3AED' });
+        }
+        
+        window.renderRadarChart('pg-radar-container', radarAxes, {
+            size: 140,
+            mode: 'inline',
+            fillColor: '#EF4444',
+            fillOpacity: 0.25,
+            strokeColor: '#EF4444',
+            animationDuration: 500,
+            showValues: false
+        });
+    }
+
     const cleanSendBtn = document.getElementById('pg-clean-send');
     if (cleanSendBtn) {
         cleanSendBtn.onclick = () => {
@@ -137,8 +215,11 @@ function showBlockOverlay(original, result, sel, inputEl) {
     document.getElementById('pg-cancel').onclick = () => overlay.remove();
 }
 
-function showWarningOverlay(original, result, sel, inputEl) {
+async function showWarningOverlay(original, result, sel, inputEl, isHoneypot = false) {
     document.getElementById('pg-overlay')?.remove();
+
+    // Load radar.js dynamically if not already loaded
+    await loadRadarChart();
 
     const overlay = document.createElement('div');
     overlay.id = 'pg-overlay';
@@ -148,10 +229,27 @@ function showWarningOverlay(original, result, sel, inputEl) {
 
     overlay.innerHTML = `
     <div class="pg-modal">
-      <div class="pg-header warn">⚠️ Suspicious Prompt Detected</div>
+      <div class="pg-header warn">
+        ${result.is_multilingual_attack ? `🛡️ Prompt Guardian — THREAT DETECTED ${result.language_emoji || '🌐'}` : '⚠️ Suspicious Prompt Detected'}
+        ${isHoneypot ? '<span style="background:#F59E0B;color:#0F1729;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:bold;margin-left:8px;">[HONEYPOT ACTIVE]</span>' : ''}
+      </div>
       <div class="pg-body">
-        <div class="pg-score warn">Risk: ${riskScore}%</div>
+        <div class="pg-score-row" style="display:flex;align-items:center;gap:8px;">
+          <div class="pg-score warn">Risk: ${riskScore}%</div>
+        </div>
+        <div class="pg-layers" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <span style="background:#1E293B;color:#93C5FD;padding:5px 10px;border-radius:6px;font-size:11px;">Pattern ${Math.round((result.pattern_score || 0) * 100)}%</span>
+          <span style="background:#1E293B;color:#A7F3D0;padding:5px 10px;border-radius:6px;font-size:11px;">Semantic ${Math.round((result.groq_score || 0) * 100)}%</span>
+          <span style="background:#1E293B;color:#FDE68A;padding:5px 10px;border-radius:6px;font-size:11px;">${result.action || 'WARN'}</span>
+          ${result.is_multilingual_attack ? `<span style="background:#7C3AED;color:white;padding:5px 12px;border-radius:6px;font-size:12px;">${result.language_emoji || '🌐'} ${result.detected_language || 'Unknown'} Attack</span>` : ''}
+        </div>
+
+        <!-- Radar Chart Container -->
+        <div id="pg-radar-container" style="display:flex;justify-content:center;margin:12px 0;"></div>
+
         <div class="pg-explanation">${escapeHtml(explanation)}</div>
+
+        ${result.translation_hint ? `<div class="pg-label" style="background:#1E293B;padding:8px;border-radius:6px;margin-top:8px;border-left:3px solid #7C3AED;">🌐 Translation hint: "${escapeHtml(result.translation_hint)}"</div>` : ''}
 
         <div class="pg-blocked-msg">This prompt has been flagged as suspicious and cannot be sent.</div>
 
@@ -164,6 +262,30 @@ function showWarningOverlay(original, result, sel, inputEl) {
 
     injectStyles();
     document.body.appendChild(overlay);
+
+    // Render radar chart if available
+    if (window.renderRadarChart) {
+        const radarAxes = [
+            { label: 'Pattern', value: Math.round((result.pattern_score || 0) * 100), color: '#F59E0B' },
+            { label: 'AI Analysis', value: Math.round((result.groq_score || 0) * 100), color: '#3B82F6' },
+            { label: 'Risk Score', value: Math.round(result.risk_score || 0), color: '#EF4444' }
+        ];
+        
+        // Add language confidence axis if multilingual
+        if (result.is_multilingual_attack && result.language_confidence) {
+            radarAxes.push({ label: 'Language', value: Math.round(result.language_confidence * 100), color: '#7C3AED' });
+        }
+        
+        window.renderRadarChart('pg-radar-container', radarAxes, {
+            size: 120,
+            mode: 'inline',
+            fillColor: '#F59E0B',
+            fillOpacity: 0.25,
+            strokeColor: '#F59E0B',
+            animationDuration: 500,
+            showValues: false
+        });
+    }
 
     document.getElementById('pg-cancel').onclick = () => overlay.remove();
 }
@@ -220,6 +342,10 @@ function logToHistory(prompt, result, userAction = 'auto', onDone = null) {
                 risk_score: result.risk_score || 0,
                 action: result.action || 'ALLOW',
                 attack_type: result.attack_type || null,
+                detected_language: result.detected_language || 'English',
+                language_emoji: result.language_emoji || '🇺🇸',
+                is_multilingual_attack: !!result.is_multilingual_attack,
+                translation_hint: result.translation_hint || null,
                 user_action: userAction,
             });
 
@@ -276,6 +402,14 @@ new MutationObserver(attachInterceptor)
     .observe(document.body, { childList: true, subtree: true });
 
 attachInterceptor();
+
+// ── HONEYPOT PAGE BANNER ─────────────────────────────────────────────────
+// Check and inject honeypot banner on page load
+injectHoneypotBanner();
+
+// Also check on DOM changes (in case page re-renders)
+new MutationObserver(() => injectHoneypotBanner())
+    .observe(document.body, { childList: true, subtree: true });
 
 // ---------------- STYLES ----------------
 function showLoadingIndicator() {
@@ -445,4 +579,119 @@ function injectStyles() {
   `;
 
     document.head.appendChild(style);
+}
+
+// ── HONEYPOT TOAST NOTIFICATION ───────────────────────────────────────────
+function showHoneypotToast(result) {
+    const toast = document.createElement('div');
+    toast.id = 'pg-honeypot-toast';
+    const attackType = result.attack_type || 'Unknown';
+    const riskScore = result.risk_score || 0;
+    
+    toast.innerHTML = `🍯 Honeypot Mode: ${attackType} logged (${riskScore}%) — Threat allowed for research`;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #2D1B0E;
+        border: 1px solid #F59E0B;
+        color: #F59E0B;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 999999;
+        font-size: 13px;
+        font-family: -apple-system, "Segoe UI", sans-serif;
+        box-shadow: 0 4px 15px rgba(245,158,11,0.3);
+        animation: pgToastFadeIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remove after 3 seconds with fade-out
+    setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s ease';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ── HONEYPOT PAGE BANNER ─────────────────────────────────────────────────────
+function injectHoneypotBanner() {
+    chrome.storage.local.get(['honeypot_mode'], (data) => {
+        const isHoneypot = data.honeypot_mode || false;
+        
+        // Remove existing banner if honeypot is off
+        if (!isHoneypot) {
+            removeHoneypotBanner();
+            return;
+        }
+        
+        // Don't inject if already exists
+        if (document.getElementById('pg-honeypot-banner')) return;
+        
+        const banner = document.createElement('div');
+        banner.id = 'pg-honeypot-banner';
+        banner.innerHTML = '🍯 HONEYPOT MODE ACTIVE — Threats are being logged but not blocked. Toggle off in the Prompt Guardian popup.';
+        banner.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 32px;
+            background: #2D1B0E;
+            border-bottom: 2px solid #F59E0B;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #F59E0B;
+            font-size: 12px;
+            font-weight: bold;
+            font-family: -apple-system, "Segoe UI", sans-serif;
+            line-height: 32px;
+        `;
+        
+        document.body.appendChild(banner);
+        
+        // Push down page content
+        document.body.style.paddingTop = '32px';
+    });
+}
+
+function removeHoneypotBanner() {
+    const banner = document.getElementById('pg-honeypot-banner');
+    if (banner) {
+        banner.remove();
+        document.body.style.paddingTop = '0';
+    }
+}
+
+// ── ALERT SOUND ─────────────────────────────────────────────────────────────
+function playAlertSound() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 800;
+    gain.gain.value = 0.3;
+    osc.start();
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.setValueAtTime(400, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime + 0.25);
+    gain.gain.setValueAtTime(0, ctx.currentTime + 0.4);
+    osc.stop(ctx.currentTime + 0.5);
+}
+
+// ── BROWSER NOTIFICATION ────────────────────────────────────────────────────
+function showBrowserNotification(result) {
+    if (Notification.permission === 'granted') {
+        new Notification('🛡️ Prompt Guardian Alert', {
+            body: `Threat Blocked! Risk: ${result.risk_score}% | Type: ${result.attack_type}`,
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🛡️</text></svg>'
+        });
+    } else {
+        Notification.requestPermission();
+    }
 }

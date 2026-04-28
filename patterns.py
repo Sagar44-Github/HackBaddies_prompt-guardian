@@ -252,10 +252,139 @@ INJECTION_PATTERNS = [
      "harmful_content", 0.87),
 ]
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  MULTILINGUAL INJECTION PATTERNS
+# ══════════════════════════════════════════════════════════════════════════════
+# Each tuple: (regex_pattern, attack_type, risk_weight)
+# attack_type includes language suffix for tracking
+
+MULTILINGUAL_PATTERNS = [
+
+    # ── Hindi (Devanagari Script) ────────────────────────────────────────────
+    (r"पिछले\s+(सभी\s+)?निर्देशों?\s+को\s+(अनदेखा|भूल|नज़रअंदाज़)\s+कर",
+     "Instruction Override (Hindi)", 0.92),
+    (r"अपने\s+(नियम|निर्देश|दिशानिर्देश)\s+(भूल|भुला\s+दो|हटा\s+दो)",
+     "Instruction Override (Hindi)", 0.90),
+    (r"(कोई|कुछ)\s+(पाबंदी|प्रतिबंध|सीमा)\s+नहीं",
+     "Jailbreak (Hindi)", 0.88),
+    (r"(अपना|तुम्हारा)\s+सिस्टम\s+प्रॉम्प्ट\s+(दिखाओ|बताओ)",
+     "Prompt Extraction (Hindi)", 0.90),
+    (r"बिना\s+(किसी\s+)?(फ़िल्टर|प्रतिबंध|रोक)\s+के\s+(काम|जवाब|बात)\s+करो",
+     "Jailbreak (Hindi)", 0.87),
+
+    # ── Hindi (Romanized / Transliterated) ───────────────────────────────────
+    (r"pichle\s+(sabhi\s+)?nirdesho\s+ko\s+(bhulo|ignore|nazar\s*andaz)",
+     "Instruction Override (Hindi)", 0.88),
+    (r"apne\s+(niyam|rules?)\s+(bhulo|bhula\s+do|hatao)",
+     "Instruction Override (Hindi)", 0.86),
+    (r"(koi|kuch)\s+(paband|pabandi|restriction)\s+nahi",
+     "Jailbreak (Hindi)", 0.84),
+    (r"system\s+prompt\s+(dikhao|batao)",
+     "Prompt Extraction (Hindi)", 0.86),
+
+    # ── Spanish ──────────────────────────────────────────────────────────────
+    (r"ignora\s+(todas\s+)?(las\s+)?instrucciones\s+(anteriores|previas)",
+     "Instruction Override (Spanish)", 0.92),
+    (r"olvida\s+(tus|todas\s+tus|las)\s+(reglas|instrucciones|directrices)",
+     "Instruction Override (Spanish)", 0.90),
+    (r"no\s+tienes\s+(ninguna\s+)?(restricci[oó]n|l[ií]mite|filtro)",
+     "Jailbreak (Spanish)", 0.88),
+    (r"(revela|muestra|dime)\s+(tu|el)\s+(prompt|indicaci[oó]n)\s+(del\s+)?sistema",
+     "Prompt Extraction (Spanish)", 0.90),
+    (r"act[uú]a\s+sin\s+(filtros?|restricciones|l[ií]mites)",
+     "Jailbreak (Spanish)", 0.87),
+
+    # ── French ───────────────────────────────────────────────────────────────
+    (r"ignor(e|ez)\s+(toutes?\s+)?(les\s+)?instructions?\s+(pr[eé]c[eé]dentes?|ant[eé]rieures?)",
+     "Instruction Override (French)", 0.92),
+    (r"oublie(z)?\s+(tes?|vos|toutes?\s+tes?)\s+(r[eè]gles?|instructions?|directives?)",
+     "Instruction Override (French)", 0.90),
+    (r"(sans|aucune)\s+(restriction|limite|filtre|contrainte)",
+     "Jailbreak (French)", 0.88),
+    (r"(r[eé]v[eè]le|montre|affiche)[\s-]+(ton|votre)\s+(invite|prompt)\s+(syst[eè]me|du\s+syst[eè]me)",
+     "Prompt Extraction (French)", 0.90),
+    (r"agis\s+(librement|sans\s+filtres?|sans\s+contraintes?)",
+     "Jailbreak (French)", 0.87),
+
+    # ── German ───────────────────────────────────────────────────────────────
+    (r"ignorier(e|en)\s+(alle\s+)?(vorherigen?|fr[uü]heren?)\s+(Anweisungen|Regeln|Instruktionen)",
+     "Instruction Override (German)", 0.92),
+    (r"vergiss\s+(deine|alle)\s+(Regeln|Anweisungen|Richtlinien)",
+     "Instruction Override (German)", 0.90),
+    (r"ohne\s+(jegliche\s+)?(Einschr[aä]nkungen|Beschr[aä]nkungen|Filter|Regeln)",
+     "Jailbreak (German)", 0.88),
+    (r"zeig(e)?\s+(deinen?|mir\s+deinen?)\s+(System\s*prompt|Systemaufforderung)",
+     "Prompt Extraction (German)", 0.90),
+
+    # ── Chinese (Simplified) ────────────────────────────────────────────────
+    (r"忽略.{0,4}(之前|以前|先前).{0,4}(所有|全部)?.{0,2}(指令|指示|规则|说明)",
+     "Instruction Override (Chinese)", 0.92),
+    (r"忘记.{0,4}(你的|自己的).{0,4}(规则|指令|限制|设定)",
+     "Instruction Override (Chinese)", 0.90),
+    (r"(没有|无|不受).{0,4}(任何)?.{0,2}(限制|约束|规则|过滤)",
+     "Jailbreak (Chinese)", 0.88),
+    (r"(显示|展示|告诉我).{0,4}(你的)?.{0,2}(系统提示|系统指令|系统设定)",
+     "Prompt Extraction (Chinese)", 0.90),
+    (r"(自由|随意).{0,4}(行动|回答|操作|做任何事)",
+     "Jailbreak (Chinese)", 0.86),
+
+    # ── Russian (Cyrillic) ──────────────────────────────────────────────────
+    (r"игнорируй\s+(все\s+)?(предыдущие|прежние|прошлые)\s+(инструкции|команды|указания|правила)",
+     "Instruction Override (Russian)", 0.92),
+    (r"забудь\s+(свои|все|эти)\s+(правила|инструкции|ограничения|указания)",
+     "Instruction Override (Russian)", 0.90),
+    (r"без\s+(каких[\s-]?либо\s+)?(ограничений|фильтров|правил|цензуры)",
+     "Jailbreak (Russian)", 0.88),
+    (r"покажи\s+(мне\s+)?(свой|системный)\s+(промпт|запрос|инструкцию)",
+     "Prompt Extraction (Russian)", 0.90),
+    (r"действуй\s+(свободно|без\s+ограничений|без\s+фильтров)",
+     "Jailbreak (Russian)", 0.87),
+
+    # ── Arabic ──────────────────────────────────────────────────────────────
+    (r"تجاهل\s+(جميع\s+)?التعليمات\s+(السابقة|القديمة|الأولى)",
+     "Instruction Override (Arabic)", 0.92),
+    (r"(انسَ|انس|تناسى)\s+(قواعدك|تعليماتك|قيودك)",
+     "Instruction Override (Arabic)", 0.90),
+    (r"بدون\s+(أي\s+)?(قيود|فلاتر|ضوابط|رقابة)",
+     "Jailbreak (Arabic)", 0.88),
+    (r"(أظهر|اعرض|اكشف)\s+(لي\s+)?(موجه|تعليمات|أوامر)\s+النظام",
+     "Prompt Extraction (Arabic)", 0.90),
+    (r"تصرف\s+بحرية\s+(تامة|كاملة|بلا\s+قيود)?",
+     "Jailbreak (Arabic)", 0.86),
+
+    # ── Japanese ────────────────────────────────────────────────────────────
+    (r"(以前|前|これまで)の(すべての|全ての)?(指示|命令|ルール|指令)を(無視|忘れ|取り消)",
+     "Instruction Override (Japanese)", 0.92),
+    (r"(ルール|規則|制限|ガイドライン)を(忘れて|無視して|捨てて)",
+     "Instruction Override (Japanese)", 0.90),
+    (r"(制限|制約|フィルター|ルール)(なし|は?ない|を?解除)",
+     "Jailbreak (Japanese)", 0.88),
+    (r"システム(プロンプト|指示|設定)を(表示|見せて|教えて|出して)",
+     "Prompt Extraction (Japanese)", 0.90),
+    (r"自由に(行動|回答|応答|振る舞)して",
+     "Jailbreak (Japanese)", 0.86),
+
+    # ── Korean ──────────────────────────────────────────────────────────────
+    (r"(이전|앞선|기존)(의\s+)?(모든\s+)?(지시|명령|규칙|지침)(을|를)\s*(무시|잊어|취소)",
+     "Instruction Override (Korean)", 0.92),
+    (r"(규칙|지침|제한)(을|를)\s*(잊어|버려|무시해|없애)",
+     "Instruction Override (Korean)", 0.90),
+    (r"(제한|규칙|필터|검열)\s*(없이|없는|없어)",
+     "Jailbreak (Korean)", 0.88),
+    (r"시스템\s*(프롬프트|지시|설정)(을|를)\s*(보여|알려|표시해)",
+     "Prompt Extraction (Korean)", 0.90),
+]
+
 # Pre-compile all patterns at module load for performance
 _COMPILED_PATTERNS = [
     (re.compile(pattern, re.IGNORECASE), attack_type, weight)
     for pattern, attack_type, weight in INJECTION_PATTERNS
+]
+
+_COMPILED_MULTILINGUAL = [
+    (re.compile(pattern, re.IGNORECASE | re.UNICODE), attack_type, weight)
+    for pattern, attack_type, weight in MULTILINGUAL_PATTERNS
 ]
 
 
@@ -293,10 +422,14 @@ def pattern_check(prompt: str) -> dict:
             - is_injection   (bool)       : True if score >= 0.55
             - matches        (list[dict]) : every match found, each with:
                                             'pattern', 'attack_type', 'weight', 'match'
+            - is_multilingual (bool)      : True if winning match came from MULTILINGUAL_PATTERNS
+            - detected_script (str)       : language suffix if multilingual, else "English"
     """
     lowered = prompt.lower().strip()
     matches = []
+    multilingual_match_indices = set()
 
+    # Run English patterns
     for compiled_re, attack_type, weight in _COMPILED_PATTERNS:
         found = compiled_re.search(lowered)
         if found:
@@ -307,6 +440,21 @@ def pattern_check(prompt: str) -> dict:
                 "match": found.group(0),
             })
 
+    # Run multilingual patterns (on original case text too for non-Latin scripts)
+    eng_match_count = len(matches)
+    for compiled_re, attack_type, weight in _COMPILED_MULTILINGUAL:
+        # Search both lowered and original (CJK/Arabic don't have case)
+        found = compiled_re.search(lowered) or compiled_re.search(prompt)
+        if found:
+            idx = len(matches)
+            matches.append({
+                "pattern": compiled_re.pattern,
+                "attack_type": attack_type,
+                "weight": weight,
+                "match": found.group(0),
+            })
+            multilingual_match_indices.add(idx)
+
     if not matches:
         return {
             "score": 0.0,
@@ -316,9 +464,18 @@ def pattern_check(prompt: str) -> dict:
             "severity": "none",
             "is_injection": False,
             "matches": [],
+            "is_multilingual": False,
+            "detected_script": "English",
         }
 
-    top_match = max(matches, key=lambda m: m["weight"])
+    top_idx = max(range(len(matches)), key=lambda i: matches[i]["weight"])
+    top_match = matches[top_idx]
+    is_multilingual = top_idx in multilingual_match_indices
+
+    # Extract language from attack_type suffix e.g. "Jailbreak (Chinese)" -> "Chinese"
+    detected_script = "English"
+    if is_multilingual and "(" in top_match["attack_type"]:
+        detected_script = top_match["attack_type"].split("(")[-1].rstrip(")")
 
     # Cumulative score: sum all weights, bonus for multiple hits, capped at 1.0
     raw_cumulative = sum(m["weight"] for m in matches)
@@ -342,4 +499,7 @@ def pattern_check(prompt: str) -> dict:
         "severity": _get_severity(score),
         "is_injection": score >= 0.55,
         "matches": matches,
+        "is_multilingual": is_multilingual,
+        "detected_script": detected_script,
     }
+
