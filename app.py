@@ -22,6 +22,7 @@ from flask import Flask, request, jsonify, g
 from flask_cors import CORS
 from dotenv import load_dotenv
 from firewall.analyzer import analyze_prompt
+from firewall.user_ban import UserBanManager
 
 load_dotenv()
 
@@ -37,6 +38,9 @@ _DEBUG             = os.getenv("API_DEBUG", "true").lower() == "true"
 _MAX_PROMPT_LENGTH = int(os.getenv("MAX_PROMPT_LENGTH", "8000"))
 _MAX_BATCH_SIZE    = int(os.getenv("MAX_BATCH_SIZE", "10"))
 _RATE_LIMIT        = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
+_MAX_WARNINGS      = int(os.getenv("MAX_WARNINGS", "5"))
+_MAX_BLOCKS        = int(os.getenv("MAX_BLOCKS", "3"))
+_BAN_DURATION_DAYS = int(os.getenv("BAN_DURATION_DAYS", "7"))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -141,6 +145,12 @@ class _RateLimiter:
 
 
 rate_limiter = _RateLimiter(_RATE_LIMIT)
+
+user_ban_manager = UserBanManager(
+    max_warnings=_MAX_WARNINGS,
+    max_blocks=_MAX_BLOCKS,
+    ban_duration_days=_BAN_DURATION_DAYS
+)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -252,6 +262,13 @@ def _validate_prompt(data: dict):
     return prompt, None
 
 
+def _get_user_id(request_obj, data: dict) -> str:
+    """Extract user_id from payload, fallback to IP address."""
+    if data and "user_id" in data and str(data["user_id"]).strip():
+        return str(data["user_id"]).strip()
+    return request_obj.remote_addr or "unknown"
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 #  ROUTES
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -282,6 +299,14 @@ def analyze():
     Returns: full risk scoring result from the firewall analyzer.
     """
     data = request.get_json(silent=True)
+    user_id = _get_user_id(request, data)
+
+    is_banned, remaining = user_ban_manager.is_banned(user_id)
+    if is_banned:
+        return jsonify({
+            "error": "You are temporarily banned.",
+            "ban_remaining_seconds": remaining
+        }), 403
 
     prompt, error = _validate_prompt(data)
     if error:
@@ -293,6 +318,14 @@ def analyze():
         result["analysis_time_ms"] = round((time.time() - start) * 1000, 1)
         result["request_id"] = g.get("request_id", "unknown")
         stats.record(result)
+
+        action = result.get("action", "ALLOW")
+        if action in ("WARN", "BLOCK"):
+            was_banned, duration = user_ban_manager.record_violation(user_id, action)
+            if was_banned:
+                result["user_banned"] = True
+                result["ban_duration_seconds"] = duration
+
     except Exception as e:
         stats.record_error()
         logger.error("Analysis failed: %s", str(e), exc_info=True)
@@ -313,6 +346,14 @@ def analyze_batch():
     Max batch size is controlled by MAX_BATCH_SIZE (default 10).
     """
     data = request.get_json(silent=True)
+    user_id = _get_user_id(request, data)
+
+    is_banned, remaining = user_ban_manager.is_banned(user_id)
+    if is_banned:
+        return jsonify({
+            "error": "You are temporarily banned.",
+            "ban_remaining_seconds": remaining
+        }), 403
 
     if not data or "prompts" not in data:
         return jsonify({"error": "Missing 'prompts' field in request body"}), 400
@@ -365,6 +406,12 @@ def analyze_batch():
                 warned += 1
             else:
                 allowed += 1
+
+            if action in ("WARN", "BLOCK"):
+                was_banned, duration = user_ban_manager.record_violation(user_id, action)
+                if was_banned:
+                    result["user_banned"] = True
+                    result["ban_duration_seconds"] = duration
 
             results.append(result)
         except Exception as e:

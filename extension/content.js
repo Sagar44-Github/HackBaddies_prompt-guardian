@@ -46,6 +46,12 @@ async function interceptPrompt(e) {
         });
 
         if (!response.ok) {
+            if (response.status === 403) {
+                const errorData = await response.json().catch(() => ({}));
+                hideLoadingIndicator();
+                showBanOverlay(errorData.ban_remaining_seconds || 0);
+                return;
+            }
             throw new Error('API returned ' + response.status);
         }
 
@@ -166,6 +172,40 @@ function showWarningOverlay(original, result, sel, inputEl) {
     document.body.appendChild(overlay);
 
     document.getElementById('pg-cancel').onclick = () => overlay.remove();
+}
+
+function showBanOverlay(remainingSeconds) {
+    document.getElementById('pg-overlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'pg-overlay';
+
+    const hours = Math.floor(remainingSeconds / 3600);
+    const minutes = Math.floor((remainingSeconds % 3600) / 60);
+    const timeText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+    overlay.innerHTML = `
+    <div class="pg-modal" style="border: 2px solid #DC2626;">
+      <div class="pg-header danger">⛔ Account Suspended</div>
+      <div class="pg-body">
+        <div class="pg-score danger" style="font-size: 18px; margin-bottom: 15px;">You are temporarily banned.</div>
+        <div class="pg-explanation" style="font-size: 14px; text-align: center;">
+          Due to repeated violations of the safety policies, your access to AI prompts has been suspended.
+        </div>
+        <div class="pg-blocked-msg" style="font-size: 16px; padding: 15px;">
+          Time remaining: <strong>${timeText}</strong>
+        </div>
+        <div class="pg-actions" style="justify-content: center; margin-top: 15px;">
+          <button class="pg-btn cancel" id="pg-cancel-ban">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+    injectStyles();
+    document.body.appendChild(overlay);
+
+    document.getElementById('pg-cancel-ban').onclick = () => overlay.remove();
 }
 
 // ---------------- UTIL ----------------
