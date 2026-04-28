@@ -68,10 +68,18 @@ async function interceptPrompt(e) {
     hideLoadingIndicator();
 
     // ── HONEYPOT MODE CHECK ─────────────────────────────────────────
-    const hpData = await new Promise((resolve) =>
-      chrome.storage.local.get(["honeypot_mode"], resolve),
-    );
-    const isHoneypot = hpData.honeypot_mode || false;
+    // Check if chrome storage is available
+    let isHoneypot = false;
+    if (chrome && chrome.storage) {
+      try {
+        const hpData = await new Promise((resolve) =>
+          chrome.storage.local.get(["honeypot_mode"], resolve),
+        );
+        isHoneypot = hpData.honeypot_mode || false;
+      } catch (err) {
+        console.warn("Prompt Guardian: Could not check honeypot mode:", err);
+      }
+    }
 
     if (isHoneypot && result.action === "BLOCK") {
       // Honeypot override: allow threat through but log it
@@ -91,7 +99,7 @@ async function interceptPrompt(e) {
     }
 
     if (result.action === "ALLOW") {
-      showSafeOverlay(result.risk_score || 0, promptText);
+      showSafeOverlay(result.risk_score || 0, promptText, result);
       logToHistory(promptText, result, "auto", () => {
         proceedWithSend(sel);
       });
@@ -127,16 +135,53 @@ async function interceptPrompt(e) {
 async function loadRadarChart() {
   if (window.renderRadarChart) return; // Already loaded
 
-  const script = document.createElement("script");
-  script.src = chrome.runtime.getURL("radar.js");
-  document.head.appendChild(script);
+  // Check if already loading to prevent duplicate requests
+  if (window._radarLoading) {
+    // Wait for it to finish loading
+    await new Promise((resolve) => {
+      const checkInterval = setInterval(() => {
+        if (window.renderRadarChart) {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 50);
+      // Timeout after 2 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        resolve();
+      }, 2000);
+    });
+    return;
+  }
 
-  // Wait for script to load
-  await new Promise((resolve) => {
-    script.onload = resolve;
-    script.onerror = resolve; // Continue even if it fails
-    setTimeout(resolve, 200); // Fallback timeout
-  });
+  window._radarLoading = true;
+
+  try {
+    // Load radar.js as an external script file (CSP-compliant)
+    const scriptUrl = chrome.runtime.getURL("radar.js");
+
+    // Create script element with proper attributes (no inline code)
+    const script = document.createElement("script");
+    script.src = scriptUrl;
+    script.type = "text/javascript";
+
+    // Wait for script to load
+    await new Promise((resolve, reject) => {
+      script.onload = () => {
+        // Give the IIFE time to execute and attach to window
+        setTimeout(resolve, 50);
+      };
+      script.onerror = () => {
+        console.warn("Prompt Guardian: Failed to load radar.js");
+        resolve(); // Resolve anyway to continue without radar
+      };
+      document.head.appendChild(script);
+    });
+  } catch (err) {
+    console.warn("Prompt Guardian: Failed to load radar chart:", err);
+  } finally {
+    window._radarLoading = false;
+  }
 }
 
 async function showBlockOverlay(original, result, sel, inputEl) {
@@ -381,11 +426,17 @@ async function showWarningOverlay(
   document.getElementById("pg-cancel").onclick = () => overlay.remove();
 }
 
-async function showSafeOverlay(score, promptText) {
+async function showSafeOverlay(score, promptText, result = {}) {
   document.getElementById("pg-overlay")?.remove();
 
   const overlay = document.createElement("div");
   overlay.id = "pg-overlay";
+
+  // Extract additional analysis details if available
+  const patternScore = result.pattern_score || 0;
+  const groqScore = result.groq_score || 0;
+  const detectedLang = result.detected_language || "English";
+  const langEmoji = result.language_emoji || "🇺🇸";
 
   overlay.innerHTML = `
     <div class="pg-modal">
@@ -395,6 +446,16 @@ async function showSafeOverlay(score, promptText) {
           <div class="pg-score safe">Risk: ${score}%</div>
           <div class="pg-confidence">LOW RISK</div>
         </div>
+        <div class="pg-layers" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <span style="background:#1E293B;color:#93C5FD;padding:5px 10px;border-radius:6px;font-size:11px;">Pattern ${Math.round(patternScore * 100)}%</span>
+          <span style="background:#1E293B;color:#A7F3D0;padding:5px 10px;border-radius:6px;font-size:11px;">Semantic ${Math.round(groqScore * 100)}%</span>
+          <span style="background:#1E293B;color:#86EFAC;padding:5px 10px;border-radius:6px;font-size:11px;">ALLOW</span>
+          <span style="background:#1E293B;color:#94A3B8;padding:5px 10px;border-radius:6px;font-size:11px;">${langEmoji} ${detectedLang}</span>
+        </div>
+
+        <!-- Radar Chart Container -->
+        <div id="pg-radar-container" style="display:flex;justify-content:center;margin:12px 0;"></div>
+
         <div class="pg-explanation">This prompt has been analyzed and deemed safe to send. No injection patterns were detected.</div>
         <div class="pg-prompt-preview">
           <div class="pg-prompt-label">Your prompt:</div>
@@ -409,6 +470,46 @@ async function showSafeOverlay(score, promptText) {
 
   injectStyles();
   document.body.appendChild(overlay);
+
+  // Render radar chart if available
+  if (window.renderRadarChart) {
+    const radarAxes = [
+      {
+        label: "Pattern",
+        value: Math.round(patternScore * 100),
+        color: "#F59E0B",
+      },
+      {
+        label: "AI Analysis",
+        value: Math.round(groqScore * 100),
+        color: "#3B82F6",
+      },
+      {
+        label: "Risk Score",
+        value: Math.round(score),
+        color: "#10B981",
+      },
+    ];
+
+    // Add language confidence axis if available
+    if (result.language_confidence) {
+      radarAxes.push({
+        label: "Language",
+        value: Math.round(result.language_confidence * 100),
+        color: "#7C3AED",
+      });
+    }
+
+    window.renderRadarChart("pg-radar-container", radarAxes, {
+      size: 120,
+      mode: "inline",
+      fillColor: "#10B981",
+      fillOpacity: 0.25,
+      strokeColor: "#10B981",
+      animationDuration: 500,
+      showValues: false,
+    });
+  }
 
   // Auto-dismiss after 2 seconds
   setTimeout(() => {
@@ -479,6 +580,13 @@ function escapeHtml(str) {
 
 function logToHistory(prompt, result, userAction = "auto", onDone = null) {
   try {
+    // Check if chrome.runtime is available (extension context)
+    if (!chrome || !chrome.storage) {
+      console.warn("Prompt Guardian: Chrome storage API not available");
+      if (onDone) onDone();
+      return;
+    }
+
     chrome.storage.local.get(["pg_history"], (data) => {
       const history = data.pg_history || [];
 
@@ -499,6 +607,12 @@ function logToHistory(prompt, result, userAction = "auto", onDone = null) {
 
       // Keep max 100 entries
       chrome.storage.local.set({ pg_history: history.slice(0, 100) }, () => {
+        if (chrome.runtime.lastError) {
+          console.warn(
+            "Prompt Guardian: Storage error:",
+            chrome.runtime.lastError,
+          );
+        }
         if (onDone) onDone();
       });
     });
@@ -850,6 +964,11 @@ function showHoneypotToast(result) {
 
 // ── HONEYPOT PAGE BANNER ─────────────────────────────────────────────────────
 function injectHoneypotBanner() {
+  // Check if chrome storage is available
+  if (!chrome || !chrome.storage) {
+    return;
+  }
+
   chrome.storage.local.get(["honeypot_mode"], (data) => {
     const isHoneypot = data.honeypot_mode || false;
 

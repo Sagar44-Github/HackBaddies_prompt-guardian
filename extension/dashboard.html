@@ -1,773 +1,1065 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🛡️ Prompt Guardian — Threat Intelligence Center</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🛡️ Prompt Guardian — Threat Intelligence Center</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap");
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(24px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes pulse-red {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.0), inset 0 1px 1px rgba(255,255,255,0.04); }
-      50%       { box-shadow: 0 0 18px 4px rgba(239,68,68,0.18), inset 0 1px 1px rgba(255,255,255,0.04); }
-    }
-    @keyframes scanline {
-      0%   { transform: translateY(-100%); }
-      100% { transform: translateY(100vh); }
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.3; }
-    }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(24px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes pulse-red {
+        0%,
+        100% {
+          box-shadow:
+            0 0 0 0 rgba(239, 68, 68, 0),
+            inset 0 1px 1px rgba(255, 255, 255, 0.04);
+        }
+        50% {
+          box-shadow:
+            0 0 18px 4px rgba(239, 68, 68, 0.18),
+            inset 0 1px 1px rgba(255, 255, 255, 0.04);
+        }
+      }
+      @keyframes scanline {
+        0% {
+          transform: translateY(-100%);
+        }
+        100% {
+          transform: translateY(100vh);
+        }
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
 
-    body {
-      background: #0A0E1A;
-      color: #CBD5E1;
-      font-family: 'Inter', 'Segoe UI', sans-serif;
-      min-height: 100vh;
-      padding: 28px 32px 40px;
-      animation: fadeInUp 0.5s ease both;
-      position: relative;
-      overflow-x: hidden;
-    }
+      body {
+        background: #0a0e1a;
+        color: #cbd5e1;
+        font-family: "Inter", "Segoe UI", sans-serif;
+        min-height: 100vh;
+        padding: 28px 32px 40px;
+        animation: fadeInUp 0.5s ease both;
+        position: relative;
+        overflow-x: hidden;
+      }
 
-    /* Subtle scanline effect */
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(96,165,250,0.15), transparent);
-      animation: scanline 6s linear infinite;
-      pointer-events: none;
-      z-index: 9999;
-    }
+      /* Responsive adjustments */
+      @media (max-width: 1200px) {
+        .main-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .section-card.half {
+          grid-column: 1 / -1;
+        }
+        .attack-chart-card,
+        .timeline-card {
+          grid-column: 1 / -1;
+        }
+      }
 
-    /* ── HEADER ── */
-    .dashboard-header {
-      text-align: center;
-      margin-bottom: 36px;
-      padding-bottom: 24px;
-      border-bottom: 1px solid #1E2D4A;
-    }
-    .header-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(96,165,250,0.08);
-      border: 1px solid rgba(96,165,250,0.2);
-      border-radius: 999px;
-      padding: 5px 14px;
-      font-size: 11px;
-      color: #60A5FA;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      margin-bottom: 14px;
-    }
-    .header-badge .dot {
-      width: 6px; height: 6px;
-      background: #60A5FA;
-      border-radius: 50%;
-      animation: blink 2s ease-in-out infinite;
-    }
-    .dashboard-header h1 {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 26px;
-      font-weight: 700;
-      color: #F1F5F9;
-      text-shadow: 0 0 30px rgba(96,165,250,0.25);
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-    .dashboard-header p {
-      font-size: 13px;
-      color: #64748B;
-      letter-spacing: 0.5px;
-    }
+      @media (max-width: 768px) {
+        body {
+          padding: 16px;
+        }
+        .main-grid {
+          grid-template-columns: 1fr;
+        }
+        .header-actions {
+          position: static;
+          flex-direction: column;
+          margin-bottom: 16px;
+        }
+        .dashboard-header h1 {
+          font-size: 20px;
+        }
+      }
 
-    /* ── MAIN GRID ── */
-    .main-grid {
-      max-width: 1400px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-    }
+      /* Subtle scanline effect */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(96, 165, 250, 0.15),
+          transparent
+        );
+        animation: scanline 6s linear infinite;
+        pointer-events: none;
+        z-index: 9999;
+      }
 
-    /* ── STAT CARDS ── */
-    .stat-card {
-      background: #10182C;
-      border: 1px solid #212943;
-      border-radius: 16px;
-      padding: 24px 20px;
-      text-align: center;
-      transition: transform 0.2s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    .stat-card::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      border-radius: 16px 16px 0 0;
-    }
-    .stat-card.blue::after  { background: linear-gradient(90deg, #1E40AF, #60A5FA, #1E40AF); }
-    .stat-card.red::after   { background: linear-gradient(90deg, #7F1D1D, #EF4444, #7F1D1D); }
-    .stat-card.green::after { background: linear-gradient(90deg, #064E3B, #10B981, #064E3B); }
-    .stat-card.amber::after { background: linear-gradient(90deg, #78350F, #F59E0B, #78350F); }
-    .stat-card.purple::after { background: linear-gradient(90deg, #4C1D95, #7C3AED, #4C1D95); }
-    .stat-card:hover { transform: translateY(-4px); }
-    .stat-card.red  { animation: pulse-red 3s ease-in-out infinite; }
+      /* ── HEADER ── */
+      .dashboard-header {
+        text-align: center;
+        margin-bottom: 36px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid #1e2d4a;
+        position: relative;
+      }
+      .header-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(96, 165, 250, 0.08);
+        border: 1px solid rgba(96, 165, 250, 0.2);
+        border-radius: 999px;
+        padding: 5px 14px;
+        font-size: 11px;
+        color: #60a5fa;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+      }
+      .header-badge .dot {
+        width: 6px;
+        height: 6px;
+        background: #60a5fa;
+        border-radius: 50%;
+        animation: blink 2s ease-in-out infinite;
+      }
+      .dashboard-header h1 {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 26px;
+        font-weight: 700;
+        color: #f1f5f9;
+        text-shadow: 0 0 30px rgba(96, 165, 250, 0.25);
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+      }
+      .dashboard-header p {
+        font-size: 13px;
+        color: #64748b;
+        letter-spacing: 0.5px;
+      }
+      /* Header Actions - Fixed positioning */
+      .header-actions {
+        position: absolute;
+        top: 0;
+        right: 0;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .header-actions button {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      #dashboard-honeypot-toggle {
+        background: transparent;
+        border: 1px solid #78350f;
+        color: #f59e0b;
+      }
+      #dashboard-honeypot-toggle:hover {
+        background: rgba(245, 158, 11, 0.1);
+      }
+      #dashboard-honeypot-toggle.active {
+        background: #f59e0b;
+        color: #0f1729;
+        border-color: #f59e0b;
+      }
+      #dashboard-export-btn {
+        background: #dc2626;
+        color: white;
+        border: none;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+      }
+      #dashboard-export-btn:hover {
+        background: #b91c1c;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+      }
+      #dashboard-export-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
 
-    .stat-icon {
-      font-size: 22px;
-      margin-bottom: 10px;
-    }
-    .stat-number {
-      font-family: 'JetBrains Mono', 'Courier New', monospace;
-      font-size: 46px;
-      font-weight: 700;
-      line-height: 1;
-      margin-bottom: 8px;
-    }
-    .stat-card.blue  .stat-number { color: #60A5FA; text-shadow: 0 0 20px rgba(96,165,250,0.3); }
-    .stat-card.red   .stat-number { color: #EF4444; text-shadow: 0 0 20px rgba(239,68,68,0.35); }
-    .stat-card.green .stat-number { color: #10B981; text-shadow: 0 0 20px rgba(16,185,129,0.3); }
-    .stat-card.amber .stat-number { color: #F59E0B; text-shadow: 0 0 20px rgba(245,158,11,0.3); }
-    .stat-card.purple .stat-number { color: #A78BFA; text-shadow: 0 0 20px rgba(167,139,250,0.3); }
+      /* ── MAIN GRID ── */
+      .main-grid {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+      }
 
-    /* Language Breakdown Styles */
-    .lang-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(30,45,74,0.6); }
-    .lang-item:last-child { border-bottom: none; }
-    .lang-flag { font-size:22px; min-width:28px; text-align:center; }
-    .lang-name { color:#E2E8F0; font-size:13px; font-weight:500; min-width:110px; }
-    .lang-count { color:#94A3B8; font-size:12px; min-width:40px; font-family:'JetBrains Mono',monospace; }
-    .lang-bar { flex:1; height:8px; background:rgba(30,45,74,0.8); border-radius:4px; overflow:hidden; }
-    .lang-bar-fill { height:100%; background:linear-gradient(90deg,#7C3AED,#A78BFA); border-radius:4px; transition:width 0.8s cubic-bezier(0.4,0,0.2,1); }
-    .stat-label {
-      font-size: 11px;
-      color: #64748B;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      font-weight: 600;
-    }
+      /* ── STAT CARDS ── */
+      .stat-card {
+        background: #10182c;
+        border: 1px solid #212943;
+        border-radius: 16px;
+        padding: 24px 20px;
+        text-align: center;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      .stat-card::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        border-radius: 16px 16px 0 0;
+      }
+      .stat-card.blue::after {
+        background: linear-gradient(90deg, #1e40af, #60a5fa, #1e40af);
+      }
+      .stat-card.red::after {
+        background: linear-gradient(90deg, #7f1d1d, #ef4444, #7f1d1d);
+      }
+      .stat-card.green::after {
+        background: linear-gradient(90deg, #064e3b, #10b981, #064e3b);
+      }
+      .stat-card.amber::after {
+        background: linear-gradient(90deg, #78350f, #f59e0b, #78350f);
+      }
+      .stat-card.purple::after {
+        background: linear-gradient(90deg, #4c1d95, #7c3aed, #4c1d95);
+      }
+      .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      }
+      .stat-card.red {
+        animation: pulse-red 3s ease-in-out infinite;
+      }
 
-    /* ── SECTION CARDS (full-width) ── */
-    .section-card {
-      background: #10182C;
-      border: 1px solid #212943;
-      border-radius: 16px;
-      padding: 24px;
-    }
-    .section-card.full-width {
-      grid-column: 1 / -1;
-    }
-    .section-card.half {
-      grid-column: span 2;
-    }
-    .section-title {
-      font-size: 11px;
-      font-weight: 700;
-      color: #60A5FA;
-      letter-spacing: 1.8px;
-      text-transform: uppercase;
-      margin-bottom: 18px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .section-title::before {
-      content: '';
-      display: inline-block;
-      width: 3px; height: 14px;
-      background: #60A5FA;
-      border-radius: 2px;
-    }
+      .stat-icon {
+        font-size: 22px;
+        margin-bottom: 10px;
+      }
+      .stat-number {
+        font-family: "JetBrains Mono", "Courier New", monospace;
+        font-size: 46px;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 8px;
+      }
+      .stat-card.blue .stat-number {
+        color: #60a5fa;
+        text-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
+      }
+      .stat-card.red .stat-number {
+        color: #ef4444;
+        text-shadow: 0 0 20px rgba(239, 68, 68, 0.35);
+      }
+      .stat-card.green .stat-number {
+        color: #10b981;
+        text-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+      }
+      .stat-card.amber .stat-number {
+        color: #f59e0b;
+        text-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+      }
+      .stat-card.purple .stat-number {
+        color: #a78bfa;
+        text-shadow: 0 0 20px rgba(167, 139, 250, 0.3);
+      }
 
-    /* ── THREAT LOG TABLE ── */
-    .table-wrapper {
-      overflow-y: auto;
-      max-height: 280px;
-      border-radius: 10px;
-      border: 1px solid #1E2D4A;
-    }
-    .table-wrapper::-webkit-scrollbar { width: 5px; }
-    .table-wrapper::-webkit-scrollbar-track { background: #0D1526; }
-    .table-wrapper::-webkit-scrollbar-thumb { background: #2D4070; border-radius: 4px; }
+      /* Language Breakdown Styles */
+      .lang-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(30, 45, 74, 0.6);
+      }
+      .lang-item:last-child {
+        border-bottom: none;
+      }
+      .lang-flag {
+        font-size: 22px;
+        min-width: 28px;
+        text-align: center;
+      }
+      .lang-name {
+        color: #e2e8f0;
+        font-size: 13px;
+        font-weight: 500;
+        min-width: 110px;
+      }
+      .lang-count {
+        color: #94a3b8;
+        font-size: 12px;
+        min-width: 40px;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .lang-bar {
+        flex: 1;
+        height: 8px;
+        background: rgba(30, 45, 74, 0.8);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .lang-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #7c3aed, #a78bfa);
+        border-radius: 4px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .stat-label {
+        font-size: 11px;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        font-weight: 600;
+      }
 
-    #log-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    #log-table thead th {
-      background: #0D1526;
-      color: #64748B;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      padding: 10px 14px;
-      text-align: left;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      font-weight: 600;
-    }
-    #log-table tbody tr {
-      border-bottom: 1px solid #1A2540;
-      transition: background 0.15s;
-    }
-    #log-table tbody tr:hover { background: rgba(96,165,250,0.05); }
-    #log-table tbody tr.row-block { background: rgba(239,68,68,0.06); border-left: 3px solid #EF4444; }
-    #log-table tbody tr.row-warn  { background: rgba(245,158,11,0.06); border-left: 3px solid #F59E0B; }
-    #log-table tbody tr.row-allow { border-left: 3px solid #10B981; }
-    #log-table td {
-      padding: 10px 14px;
-      color: #CBD5E1;
-      vertical-align: middle;
-    }
-    .action-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-    .badge-block { background: rgba(239,68,68,0.15); color: #EF4444; border: 1px solid rgba(239,68,68,0.3); }
-    .badge-warn  { background: rgba(245,158,11,0.15); color: #F59E0B; border: 1px solid rgba(245,158,11,0.3); }
-    .badge-allow { background: rgba(16,185,129,0.15); color: #10B981; border: 1px solid rgba(16,185,129,0.3); }
-    .risk-cell { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+      /* ── SECTION CARDS (full-width) ── */
+      .section-card {
+        background: #10182c;
+        border: 1px solid #212943;
+        border-radius: 16px;
+        padding: 24px;
+      }
+      .section-card.full-width {
+        grid-column: 1 / -1;
+      }
+      .section-card.half {
+        grid-column: span 2;
+      }
+      .section-title {
+        font-size: 11px;
+        font-weight: 700;
+        color: #60a5fa;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .section-title::before {
+        content: "";
+        display: inline-block;
+        width: 3px;
+        height: 14px;
+        background: #60a5fa;
+        border-radius: 2px;
+      }
 
-    /* ── SVG CHART CONTAINER ── */
-    #attack-chart-container {
-      width: 100%;
-      min-height: 200px;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-    }
+      /* ── THREAT LOG TABLE ── */
+      .table-wrapper {
+        overflow-y: auto;
+        max-height: 280px;
+        border-radius: 10px;
+        border: 1px solid #1e2d4a;
+      }
+      .table-wrapper::-webkit-scrollbar {
+        width: 5px;
+      }
+      .table-wrapper::-webkit-scrollbar-track {
+        background: #0d1526;
+      }
+      .table-wrapper::-webkit-scrollbar-thumb {
+        background: #2d4070;
+        border-radius: 4px;
+      }
 
-    /* ── ADVANCED TIMELINE CARD ── */
-    .attack-chart-card {
-      grid-column: 1 / 3;
-    }
-    .timeline-card {
-      grid-column: 3 / 5;
-    }
-    .timeline-card .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 12px;
-    }
-    .timeline-card .card-subtitle {
-      font-size: 11px;
-      color: var(--text-secondary, #64748B);
-      margin-top: 3px;
-    }
-    .timeline-card .timeline-header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    #timeline-session-info {
-      color: #64748B;
-      font-size: 11px;
-      font-family: 'JetBrains Mono', monospace;
-      white-space: nowrap;
-    }
-    #full-timeline-btn {
-      padding: 5px 12px;
-      background: transparent;
-      color: #60A5FA;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      font-size: 11px;
-      cursor: pointer;
-    }
-    #full-timeline-btn:hover {
-      background: #1E293B;
-    }
-    #severity-timeline-container {
-      width: 100%;
-      position: relative;
-      min-height: 280px;
-    }
+      #log-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      #log-table thead th {
+        background: #0d1526;
+        color: #64748b;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 10px 14px;
+        text-align: left;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        font-weight: 600;
+      }
+      #log-table tbody tr {
+        border-bottom: 1px solid #1a2540;
+        transition: background 0.15s;
+      }
+      #log-table tbody tr:hover {
+        background: rgba(96, 165, 250, 0.05);
+      }
+      #log-table tbody tr.row-block {
+        background: rgba(239, 68, 68, 0.06);
+        border-left: 3px solid #ef4444;
+      }
+      #log-table tbody tr.row-warn {
+        background: rgba(245, 158, 11, 0.06);
+        border-left: 3px solid #f59e0b;
+      }
+      #log-table tbody tr.row-allow {
+        border-left: 3px solid #10b981;
+      }
+      #log-table td {
+        padding: 10px 14px;
+        color: #cbd5e1;
+        vertical-align: middle;
+      }
+      .action-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+      .badge-block {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
+      .badge-warn {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+      }
+      .badge-allow {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+      .risk-cell {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+      }
 
-    /* ── FOOTER ── */
-    .dashboard-footer {
-      grid-column: 1 / -1;
-      text-align: center;
-      font-size: 11px;
-      color: #374155;
-      padding-top: 4px;
-      font-family: 'JetBrains Mono', monospace;
-      letter-spacing: 0.5px;
-    }
-    #footer-session { color: #475569; }
+      /* ── SVG CHART CONTAINER ── */
+      #attack-chart-container {
+        width: 100%;
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+      }
 
-    /* ── EMPTY STATE ── */
-    #empty-state {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 80px 20px;
-      display: none;
-    }
-    #empty-state .empty-icon { font-size: 48px; margin-bottom: 16px; }
-    #empty-state h2 { color: #334155; font-size: 18px; margin-bottom: 8px; }
-    #empty-state p  { color: #475569; font-size: 13px; }
+      /* ── ADVANCED TIMELINE CARD ── */
+      .attack-chart-card {
+        grid-column: 1 / 3;
+      }
+      .timeline-card {
+        grid-column: 3 / 5;
+      }
+      .timeline-card .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+      }
+      .timeline-card .card-subtitle {
+        font-size: 11px;
+        color: var(--text-secondary, #64748b);
+        margin-top: 3px;
+      }
+      .timeline-card .timeline-header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #timeline-session-info {
+        color: #64748b;
+        font-size: 11px;
+        font-family: "JetBrains Mono", monospace;
+        white-space: nowrap;
+      }
+      #full-timeline-btn {
+        padding: 5px 12px;
+        background: transparent;
+        color: #60a5fa;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      #full-timeline-btn:hover {
+        background: #1e293b;
+      }
+      #severity-timeline-container {
+        width: 100%;
+        position: relative;
+        min-height: 280px;
+      }
 
-    /* Tooltip via title — enhanced */
-    [title] { cursor: help; }
+      /* ── FOOTER ── */
+      .dashboard-footer {
+        grid-column: 1 / -1;
+        text-align: center;
+        font-size: 11px;
+        color: #374155;
+        padding-top: 4px;
+        font-family: "JetBrains Mono", monospace;
+        letter-spacing: 0.5px;
+      }
+      #footer-session {
+        color: #475569;
+      }
 
-    /* ── THREAT INTEL CARD ── */
-    .threat-intel-card {
-      grid-column: 1 / -1;
-      background: #10182C;
-      border: 1px solid #212943;
-      border-radius: 16px;
-      padding: 24px;
-    }
-    .ti-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 6px;
-    }
-    .ti-card-header h2 {
-      font-size: 16px;
-      font-weight: 700;
-      color: #F1F5F9;
-    }
-    .ti-subtitle {
-      font-size: 12px;
-      color: #64748B;
-      margin-bottom: 20px;
-    }
-    .ti-last-updated {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: #475569;
-      white-space: nowrap;
-    }
-    #threat-intel-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-    }
-    .intel-card {
-      background: #0A0E1A;
-      border: 1px solid #212943;
-      border-radius: 10px;
-      padding: 14px;
-      transition: transform 0.2s, border-color 0.2s;
-    }
-    .intel-card:hover {
-      transform: translateY(-3px);
-      border-color: #60A5FA;
-    }
-    .intel-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .intel-severity {
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 700;
-      color: white;
-    }
-    .intel-severity.CRITICAL { background: #EF4444; }
-    .intel-severity.HIGH     { background: #F59E0B; }
-    .intel-severity.MEDIUM   { background: #3B82F6; }
-    .intel-severity.LOW      { background: #64748B; }
-    .intel-cvss {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: #64748B;
-    }
-    .intel-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #E2E8F0;
-      margin: 4px 0 6px 0;
-      line-height: 1.35;
-    }
-    .intel-description {
-      font-size: 11px;
-      color: #64748B;
-      line-height: 1.5;
-      margin-bottom: 10px;
-    }
-    .intel-models {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-bottom: 10px;
-    }
-    .intel-model-tag {
-      background: #1E2D4A;
-      padding: 2px 7px;
-      border-radius: 3px;
-      font-size: 9px;
-      color: #94A3B8;
-    }
-    .intel-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding-top: 8px;
-      border-top: 1px solid #1E2D4A;
-      font-size: 10px;
-      color: #64748B;
-    }
-    .intel-meta-item strong { color: #94A3B8; margin-right: 2px; }
-    .intel-status { font-weight: 700; }
-    .intel-status.Patched                     { color: #10B981; }
-    .intel-status.Active-Threat               { color: #EF4444; }
-    .intel-status.Under-Investigation         { color: #F59E0B; }
-    .intel-status.Mitigated-by-Prompt-Guardian { color: #60A5FA; }
-    /* ── EXPORT REPORT BUTTON ── */
-    #dashboard-export-btn {
-      position: absolute;
-      top: 20px; right: 32px;
-      background: #DC2626;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(220,38,38,0.35);
-      transition: background 0.2s, transform 0.15s;
-      letter-spacing: 0.3px;
-    }
-    #dashboard-export-btn:hover {
-      background: #B91C1C;
-      transform: translateY(-1px);
-    }
-    #dashboard-export-btn:disabled {
-      opacity: 0.7; cursor: not-allowed;
-    }
+      /* ── EMPTY STATE ── */
+      #empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 80px 20px;
+        display: none;
+      }
+      #empty-state .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+      }
+      #empty-state h2 {
+        color: #334155;
+        font-size: 18px;
+        margin-bottom: 8px;
+      }
+      #empty-state p {
+        color: #475569;
+        font-size: 13px;
+      }
 
-    /* ── THREAT PROFILE ANALYSIS CARD (RADAR CHARTS) ── */
-    .radar-item {
-      background: #0A0E1A;
-      border: 1px solid #212943;
-      border-radius: 10px;
-      padding: 16px;
-      text-align: center;
-      width: 220px;
-      flex-shrink: 0;
-      transition: transform 0.2s, border-color 0.2s;
-    }
-    .radar-item:hover {
-      border-color: #3B82F6;
-      transform: translateY(-2px);
-    }
-    .radar-item-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .radar-risk-badge {
-      background: #DC2626;
-      color: white;
-      padding: 3px 10px;
-      border-radius: 6px;
-      font-weight: bold;
-      font-size: 14px;
-      font-family: 'Courier New', monospace;
-    }
-    .radar-risk-badge.amber { background: #D97706; }
-    .radar-risk-badge.blue { background: #3B82F6; }
-    .radar-attack-type {
-      color: #64748B;
-      font-size: 12px;
-    }
-    .radar-item-footer {
-      margin-top: 10px;
-      font-size: 10px;
-      color: #64748B;
-    }
-    .radar-timestamp {
-      margin-right: 8px;
-    }
-    .radar-prompt-snip {
-      font-family: 'JetBrains Mono', monospace;
-    }
-    #radar-chart-grid {
-      display: flex;
-      justify-content: space-around;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 20px;
-      padding: 10px 0;
-    }
+      /* Tooltip via title — enhanced */
+      [title] {
+        cursor: help;
+      }
 
-    /* ── HONEYPOT MODE DASHBOARD UI ── */
-    #honeypot-banner {
-      display: none;
-      background: #2D1B0E;
-      border-bottom: 2px solid #F59E0B;
-      padding: 12px 24px;
-      text-align: center;
-      color: #F59E0B;
-      font-size: 13px;
-      font-weight: bold;
-    }
-    #dashboard-honeypot-toggle {
-      background: transparent;
-      border: 1px solid #78350F;
-      color: #F59E0B;
-      border-radius: 6px;
-      padding: 6px 14px;
-      font-size: 11px;
-      cursor: pointer;
-      transition: background 0.2s, color 0.2s;
-    }
-    #dashboard-honeypot-toggle:hover {
-      background: #1E293B;
-    }
-    #dashboard-honeypot-toggle.active {
-      background: #F59E0B;
-      color: #0F1729;
-      font-weight: bold;
-    }
-    .honeypot-card {
-      border-color: #78350F;
-    }
-    .honeypot-card h2 {
-      color: #F59E0B;
-    }
-    .honeypot-row {
-      border-left: 3px solid #F59E0B;
-      background: rgba(245, 158, 11, 0.05);
-    }
-    .honeypot-badge {
-      background: #F59E0B;
-      color: #0F1729;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: bold;
-    }
-    .honeypot-stats {
-      display: flex;
-      gap: 20px;
-      margin-bottom: 12px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #1E2D4A;
-    }
-    .honeypot-stat {
-      font-size: 12px;
-      color: #64748B;
-    }
-    .honeypot-stat strong {
-      color: #F59E0B;
-      font-size: 16px;
-      display: block;
-    }
-  </style>
-</head>
-<body>
+      /* ── THREAT INTEL CARD ── */
+      .threat-intel-card {
+        grid-column: 1 / -1;
+        background: #10182c;
+        border: 1px solid #212943;
+        border-radius: 16px;
+        padding: 24px;
+      }
+      .ti-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 6px;
+      }
+      .ti-card-header h2 {
+        font-size: 16px;
+        font-weight: 700;
+        color: #f1f5f9;
+      }
+      .ti-subtitle {
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 20px;
+      }
+      .ti-last-updated {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: #475569;
+        white-space: nowrap;
+      }
+      #threat-intel-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .intel-card {
+        background: #0a0e1a;
+        border: 1px solid #212943;
+        border-radius: 10px;
+        padding: 14px;
+        transition:
+          transform 0.2s,
+          border-color 0.2s;
+      }
+      .intel-card:hover {
+        transform: translateY(-3px);
+        border-color: #60a5fa;
+      }
+      .intel-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .intel-severity {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        color: white;
+      }
+      .intel-severity.CRITICAL {
+        background: #ef4444;
+      }
+      .intel-severity.HIGH {
+        background: #f59e0b;
+      }
+      .intel-severity.MEDIUM {
+        background: #3b82f6;
+      }
+      .intel-severity.LOW {
+        background: #64748b;
+      }
+      .intel-cvss {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: #64748b;
+      }
+      .intel-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #e2e8f0;
+        margin: 4px 0 6px 0;
+        line-height: 1.35;
+      }
+      .intel-description {
+        font-size: 11px;
+        color: #64748b;
+        line-height: 1.5;
+        margin-bottom: 10px;
+      }
+      .intel-models {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-bottom: 10px;
+      }
+      .intel-model-tag {
+        background: #1e2d4a;
+        padding: 2px 7px;
+        border-radius: 3px;
+        font-size: 9px;
+        color: #94a3b8;
+      }
+      .intel-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #1e2d4a;
+        font-size: 10px;
+        color: #64748b;
+      }
+      .intel-meta-item strong {
+        color: #94a3b8;
+        margin-right: 2px;
+      }
+      .intel-status {
+        font-weight: 700;
+      }
+      .intel-status.Patched {
+        color: #10b981;
+      }
+      .intel-status.Active-Threat {
+        color: #ef4444;
+      }
+      .intel-status.Under-Investigation {
+        color: #f59e0b;
+      }
+      .intel-status.Mitigated-by-Prompt-Guardian {
+        color: #60a5fa;
+      }
+      /* ── EXPORT REPORT BUTTON - REMOVED FROM OLD POSITION ── */
+      /* Button now in header-actions */
 
-  <!-- ── HONEYPOT STATUS BANNER ── -->
-  <div id="honeypot-banner">🍯 HONEYPOT MODE IS CURRENTLY ACTIVE — Threats are being allowed through for intelligence gathering. Toggle below to disable.</div>
+      /* ── THREAT PROFILE ANALYSIS CARD (RADAR CHARTS) ── */
+      .radar-item {
+        background: #0a0e1a;
+        border: 1px solid #212943;
+        border-radius: 10px;
+        padding: 16px;
+        text-align: center;
+        width: 220px;
+        flex-shrink: 0;
+        transition:
+          transform 0.2s,
+          border-color 0.2s;
+      }
+      .radar-item:hover {
+        border-color: #3b82f6;
+        transform: translateY(-2px);
+      }
+      .radar-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .radar-risk-badge {
+        background: #dc2626;
+        color: white;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 14px;
+        font-family: "Courier New", monospace;
+      }
+      .radar-risk-badge.amber {
+        background: #d97706;
+      }
+      .radar-risk-badge.blue {
+        background: #3b82f6;
+      }
+      .radar-attack-type {
+        color: #64748b;
+        font-size: 12px;
+      }
+      .radar-item-footer {
+        margin-top: 10px;
+        font-size: 10px;
+        color: #64748b;
+      }
+      .radar-timestamp {
+        margin-right: 8px;
+      }
+      .radar-prompt-snip {
+        font-family: "JetBrains Mono", monospace;
+      }
+      #radar-chart-grid {
+        display: flex;
+        justify-content: space-around;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 20px;
+        padding: 10px 0;
+      }
 
-  <!-- ── HEADER ── -->
-  <div class="dashboard-header" style="position:relative;">
-    <div class="header-badge">
-      <span class="dot"></span>
-      Live Session
+      /* ── HONEYPOT MODE DASHBOARD UI ── */
+      #honeypot-banner {
+        display: none;
+        background: #2d1b0e;
+        border-bottom: 2px solid #f59e0b;
+        padding: 12px 24px;
+        text-align: center;
+        color: #f59e0b;
+        font-size: 13px;
+        font-weight: bold;
+      }
+      #dashboard-honeypot-toggle {
+        background: transparent;
+        border: 1px solid #78350f;
+        color: #f59e0b;
+        border-radius: 6px;
+        padding: 6px 14px;
+        font-size: 11px;
+        cursor: pointer;
+        transition:
+          background 0.2s,
+          color 0.2s;
+      }
+      #dashboard-honeypot-toggle:hover {
+        background: #1e293b;
+      }
+      #dashboard-honeypot-toggle.active {
+        background: #f59e0b;
+        color: #0f1729;
+        font-weight: bold;
+      }
+      .honeypot-card {
+        border-color: #78350f;
+      }
+      .honeypot-card h2 {
+        color: #f59e0b;
+      }
+      .honeypot-row {
+        border-left: 3px solid #f59e0b;
+        background: rgba(245, 158, 11, 0.05);
+      }
+      .honeypot-badge {
+        background: #f59e0b;
+        color: #0f1729;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: bold;
+      }
+      .honeypot-stats {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #1e2d4a;
+      }
+      .honeypot-stat {
+        font-size: 12px;
+        color: #64748b;
+      }
+      .honeypot-stat strong {
+        color: #f59e0b;
+        font-size: 16px;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ── HONEYPOT STATUS BANNER ── -->
+    <div id="honeypot-banner">
+      🍯 HONEYPOT MODE IS CURRENTLY ACTIVE — Threats are being allowed through
+      for intelligence gathering. Toggle below to disable.
     </div>
-    <h1>🛡️ PROMPT GUARDIAN — THREAT INTELLIGENCE CENTER</h1>
-    <p>Real-time session analytics for prompt injection defense</p>
-    <div style="position:absolute;top:20px;right:32px;display:flex;gap:10px;">
-      <button id="dashboard-honeypot-toggle">🍯 Enable Honeypot Mode</button>
-      <button id="dashboard-export-btn">📄 Export Forensic Report</button>
-    </div>
-  </div>
 
-  <!-- ── MAIN GRID ── -->
-  <div class="main-grid" id="main-grid">
-
-    <!-- Row 1: Stat Cards -->
-    <div class="stat-card blue">
-      <div class="stat-icon">📡</div>
-      <div class="stat-number" id="stat-total">0</div>
-      <div class="stat-label">Total Scanned</div>
-    </div>
-
-    <div class="stat-card red">
-      <div class="stat-icon">🚨</div>
-      <div class="stat-number" id="stat-threats">0</div>
-      <div class="stat-label">Threats Detected</div>
-    </div>
-
-    <div class="stat-card green">
-      <div class="stat-icon">✅</div>
-      <div class="stat-number" id="stat-safe">0</div>
-      <div class="stat-label">Safe Prompts</div>
-    </div>
-
-    <div class="stat-card amber">
-      <div class="stat-icon">⚡</div>
-      <div class="stat-number" id="stat-avg">0.0</div>
-      <div class="stat-label">Avg Risk %</div>
-    </div>
-
-    <div class="stat-card purple">
-      <div class="stat-icon">🌐</div>
-      <div class="stat-number" id="multilingual-count">0</div>
-      <div class="stat-label">Multilingual Attacks</div>
-    </div>
-
-    <!-- Row 2: Threat Log Table -->
-    <div class="section-card full-width">
-      <div class="section-title">Recent Threat Log</div>
-      <div class="table-wrapper">
-        <table id="log-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Prompt Snippet</th>
-              <th>Risk %</th>
-              <th>Attack Type</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="log-table-body">
-            <!-- JS populates -->
-          </tbody>
-        </table>
+    <!-- ── HEADER ── -->
+    <div class="dashboard-header">
+      <div class="header-actions">
+        <button id="dashboard-honeypot-toggle">🍯 Enable Honeypot Mode</button>
+        <button id="dashboard-export-btn">📄 Export Forensic Report</button>
       </div>
+      <div class="header-badge">
+        <span class="dot"></span>
+        Live Session
+      </div>
+      <h1>🛡️ PROMPT GUARDIAN — THREAT INTELLIGENCE CENTER</h1>
+      <p>Real-time session analytics for prompt injection defense</p>
     </div>
 
-    <!-- Row 3 Left: SVG Attack Chart -->
-    <div class="section-card half attack-chart-card">
-      <div class="section-title">Attack Category Distribution</div>
-      <div id="attack-chart-container"><!-- renderAttackChart() populates --></div>
-    </div>
+    <!-- ── MAIN GRID ── -->
+    <div class="main-grid" id="main-grid">
+      <!-- Row 1: Stat Cards -->
+      <div class="stat-card blue">
+        <div class="stat-icon">📡</div>
+        <div class="stat-number" id="stat-total">0</div>
+        <div class="stat-label">Total Scanned</div>
+      </div>
 
-    <!-- Row 3 Right: Timeline -->
-    <div class="section-card half timeline-card">
-      <div class="card-header">
-        <div>
-          <h2 class="section-title" style="margin-bottom:0;">⏱️ Attack Severity Timeline</h2>
-          <div class="card-subtitle">Multi-band severity visualization — hover dots for details</div>
+      <div class="stat-card red">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-number" id="stat-threats">0</div>
+        <div class="stat-label">Threats Detected</div>
+      </div>
+
+      <div class="stat-card green">
+        <div class="stat-icon">✅</div>
+        <div class="stat-number" id="stat-safe">0</div>
+        <div class="stat-label">Safe Prompts</div>
+      </div>
+
+      <div class="stat-card amber">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-number" id="stat-avg">0.0</div>
+        <div class="stat-label">Avg Risk %</div>
+      </div>
+
+      <div class="stat-card purple">
+        <div class="stat-icon">🌐</div>
+        <div class="stat-number" id="multilingual-count">0</div>
+        <div class="stat-label">Multilingual Attacks</div>
+      </div>
+
+      <!-- Row 2: Threat Log Table -->
+      <div class="section-card full-width">
+        <div class="section-title">Recent Threat Log</div>
+        <div class="table-wrapper">
+          <table id="log-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Prompt Snippet</th>
+                <th>Risk %</th>
+                <th>Attack Type</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="log-table-body">
+              <!-- JS populates -->
+            </tbody>
+          </table>
         </div>
-        <div class="timeline-header-right">
-          <span id="timeline-session-info">Session: --m | 0 events</span>
-          <button id="full-timeline-btn">⛶ Full View</button>
+      </div>
+
+      <!-- Row 3 Left: SVG Attack Chart -->
+      <div class="section-card half attack-chart-card">
+        <div class="section-title">Attack Category Distribution</div>
+        <div id="attack-chart-container">
+          <!-- renderAttackChart() populates -->
         </div>
       </div>
-      <div id="severity-timeline-container">
-        <!-- window.renderSeverityTimeline() mounts here -->
-      </div>
-    </div>
 
-    <!-- Row 3.5: Language Detection Breakdown -->
-    <div class="section-card half">
-      <div class="section-title">🌐 Language Detection Breakdown</div>
-      <div id="language-breakdown">
-        <div style="color:#475569;padding:24px;text-align:center;font-size:12px;">No multilingual attacks detected this session.</div>
-      </div>
-    </div>
-
-    <!-- Row 4: Threat Profile Analysis (Radar Charts) -->
-    <div class="section-card full-width">
-      <div class="ti-card-header">
-        <div>
-          <h2 class="section-title" style="margin-bottom:0;">🎯 Threat Profile Analysis</h2>
-          <div class="ti-subtitle">Detection confidence breakdown for top threats</div>
+      <!-- Row 3 Right: Timeline -->
+      <div class="section-card half timeline-card">
+        <div class="card-header">
+          <div>
+            <h2 class="section-title" style="margin-bottom: 0">
+              ⏱️ Attack Severity Timeline
+            </h2>
+            <div class="card-subtitle">
+              Multi-band severity visualization — hover dots for details
+            </div>
+          </div>
+          <div class="timeline-header-right">
+            <span id="timeline-session-info">Session: --m | 0 events</span>
+            <button id="full-timeline-btn">⛶ Full View</button>
+          </div>
         </div>
-        <div class="ti-last-updated" id="radar-count">Showing top 0 threats</div>
-      </div>
-      <div id="radar-chart-grid">
-        <!-- dashboard.js populates radar charts here -->
-        <div style="grid-column:1/-1;text-align:center;padding:32px;color:#475569;">No threats to analyze. All prompts in this session were safe.</div>
-      </div>
-    </div>
-
-    <!-- Row 5: Honeypot Intelligence Log -->
-    <div class="section-card full-width honeypot-card">
-      <div class="ti-card-header">
-        <div>
-          <h2 class="section-title" style="margin-bottom:0;">🍯 Honeypot Intelligence Log</h2>
-          <div class="ti-subtitle">Threats allowed through for analysis</div>
+        <div id="severity-timeline-container">
+          <!-- window.renderSeverityTimeline() mounts here -->
         </div>
       </div>
-      <div class="honeypot-stats">
-        <div class="honeypot-stat"><strong id="hp-total">0</strong>Total Honeypot Events</div>
-        <div class="honeypot-stat"><strong id="hp-highest">0%</strong>Highest Risk Logged</div>
-        <div class="honeypot-stat"><strong id="hp-types">0</strong>Unique Attack Types</div>
-      </div>
-      <div class="table-wrapper">
-        <table id="honeypot-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Prompt</th>
-              <th>Risk Score</th>
-              <th>Attack Type</th>
-              <th>Language</th>
-              <th>Action Taken</th>
-            </tr>
-          </thead>
-          <tbody id="honeypot-table-body">
-            <!-- JS populates -->
-          </tbody>
-        </table>
-      </div>
-    </div>
 
-    <!-- Footer -->
-    <div class="dashboard-footer">
-      <span id="footer-session">Session started: —</span>
-      &nbsp;|&nbsp; Engine: Regex + Groq Llama3 + Weighted Risk Scoring
-    </div>
-
-    <!-- Row 4: Global Threat Intelligence Grid -->
-    <div class="section-card full-width threat-intel-card">
-      <div class="ti-card-header">
-        <div>
-          <h2>🌐 Global Threat Intelligence</h2>
-          <div class="ti-subtitle">Live feed from OWASP LLM, MITRE ATLAS, and security research community</div>
+      <!-- Row 3.5: Language Detection Breakdown -->
+      <div class="section-card half">
+        <div class="section-title">🌐 Language Detection Breakdown</div>
+        <div id="language-breakdown">
+          <div
+            style="
+              color: #475569;
+              padding: 24px;
+              text-align: center;
+              font-size: 12px;
+            "
+          >
+            No multilingual attacks detected this session.
+          </div>
         </div>
-        <div class="ti-last-updated" id="feed-last-updated">Fetching…</div>
       </div>
-      <div id="threat-intel-grid">
-        <!-- dashboard.js populates threat cards here -->
-        <div style="grid-column:1/-1;text-align:center;padding:32px;color:#475569;">Loading threat intelligence…</div>
+
+      <!-- Row 4: Threat Profile Analysis (Radar Charts) -->
+      <div class="section-card full-width">
+        <div class="ti-card-header">
+          <div>
+            <h2 class="section-title" style="margin-bottom: 0">
+              🎯 Threat Profile Analysis
+            </h2>
+            <div class="ti-subtitle">
+              Detection confidence breakdown for top threats
+            </div>
+          </div>
+          <div class="ti-last-updated" id="radar-count">
+            Showing top 0 threats
+          </div>
+        </div>
+        <div id="radar-chart-grid">
+          <!-- dashboard.js populates radar charts here -->
+          <div
+            style="
+              grid-column: 1/-1;
+              text-align: center;
+              padding: 32px;
+              color: #475569;
+            "
+          >
+            No threats to analyze. All prompts in this session were safe.
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 5: Honeypot Intelligence Log -->
+      <div class="section-card full-width honeypot-card">
+        <div class="ti-card-header">
+          <div>
+            <h2 class="section-title" style="margin-bottom: 0">
+              🍯 Honeypot Intelligence Log
+            </h2>
+            <div class="ti-subtitle">Threats allowed through for analysis</div>
+          </div>
+        </div>
+        <div class="honeypot-stats">
+          <div class="honeypot-stat">
+            <strong id="hp-total">0</strong>Total Honeypot Events
+          </div>
+          <div class="honeypot-stat">
+            <strong id="hp-highest">0%</strong>Highest Risk Logged
+          </div>
+          <div class="honeypot-stat">
+            <strong id="hp-types">0</strong>Unique Attack Types
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table id="honeypot-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Prompt</th>
+                <th>Risk Score</th>
+                <th>Attack Type</th>
+                <th>Language</th>
+                <th>Action Taken</th>
+              </tr>
+            </thead>
+            <tbody id="honeypot-table-body">
+              <!-- JS populates -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="dashboard-footer">
+        <span id="footer-session">Session started: —</span>
+        &nbsp;|&nbsp; Engine: Regex + Groq Llama3 + Weighted Risk Scoring
+      </div>
+
+      <!-- Row 4: Global Threat Intelligence Grid -->
+      <div class="section-card full-width threat-intel-card">
+        <div class="ti-card-header">
+          <div>
+            <h2>🌐 Global Threat Intelligence</h2>
+            <div class="ti-subtitle">
+              Live feed from OWASP LLM, MITRE ATLAS, and security research
+              community
+            </div>
+          </div>
+          <div class="ti-last-updated" id="feed-last-updated">Fetching…</div>
+        </div>
+        <div id="threat-intel-grid">
+          <!-- dashboard.js populates threat cards here -->
+          <div
+            style="
+              grid-column: 1/-1;
+              text-align: center;
+              padding: 32px;
+              color: #475569;
+            "
+          >
+            Loading threat intelligence…
+          </div>
+        </div>
       </div>
     </div>
 
-  </div>
+    <!-- Empty State (shown if no data) -->
+    <div id="empty-state">
+      <div class="empty-icon">📭</div>
+      <h2>No Activity Yet</h2>
+      <p>
+        Use the extension on ChatGPT, Gemini, or Claude to generate data.<br />Then
+        come back here to see your threat intelligence dashboard.
+      </p>
+    </div>
 
-  <!-- Empty State (shown if no data) -->
-  <div id="empty-state">
-    <div class="empty-icon">📭</div>
-    <h2>No Activity Yet</h2>
-    <p>Use the extension on ChatGPT, Gemini, or Claude to generate data.<br>Then come back here to see your threat intelligence dashboard.</p>
-  </div>
-
-  <!-- chart.js must load BEFORE dashboard.js so window.renderAttackChart exists -->
-  <script src="chart.js"></script>
-  <script src="timeline.js"></script>
-  <script src="radar.js"></script>
-  <script src="dashboard.js"></script>
-</body>
+    <!-- chart.js must load BEFORE dashboard.js so window.renderAttackChart exists -->
+    <script src="chart.js"></script>
+    <script src="timeline.js"></script>
+    <script src="radar.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
 </html>

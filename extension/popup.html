@@ -1,473 +1,633 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🛡️ Prompt Guardian</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🛡️ Prompt Guardian</title>
 
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: "Segoe UI", sans-serif;
-    }
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", sans-serif;
+      }
 
-    body {
-      width: 380px;
-      background: linear-gradient(135deg, #07111F, #0F172A, #172554);
-      color: #E2E8F0;
-      padding: 18px;
-    }
+      body {
+        width: 380px;
+        background: linear-gradient(135deg, #07111f, #0f172a, #172554);
+        color: #e2e8f0;
+        padding: 18px;
+      }
 
-    /* Main Glass Card */
-    .container {
-      background: rgba(17, 24, 39, 0.92);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 24px;
-      padding: 20px;
-      backdrop-filter: blur(16px);
-      box-shadow:
-        0 20px 40px rgba(0,0,0,0.35),
-        inset 0 1px 1px rgba(255,255,255,0.04);
-    }
+      /* Main Glass Card */
+      .container {
+        background: rgba(17, 24, 39, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        padding: 20px;
+        backdrop-filter: blur(16px);
+        box-shadow:
+          0 20px 40px rgba(0, 0, 0, 0.35),
+          inset 0 1px 1px rgba(255, 255, 255, 0.04);
+      }
 
-    /* Header */
-    .header {
-      margin-bottom: 22px;
-    }
+      /* Header */
+      .header {
+        margin-bottom: 22px;
+      }
 
-    .header h1 {
-      font-size: 23px;
-      font-weight: 700;
-      color: #60A5FA;
-      text-shadow: 0 0 12px rgba(96,165,250,0.25);
-      margin-bottom: 5px;
-    }
+      .header h1 {
+        font-size: 23px;
+        font-weight: 700;
+        color: #60a5fa;
+        text-shadow: 0 0 12px rgba(96, 165, 250, 0.25);
+        margin-bottom: 5px;
+      }
 
-    .subtitle {
-      font-size: 12px;
-      color: #94A3B8;
-      letter-spacing: 0.5px;
-      line-height: 1.5;
-    }
+      .subtitle {
+        font-size: 12px;
+        color: #94a3b8;
+        letter-spacing: 0.5px;
+        line-height: 1.5;
+      }
 
-    /* Stats Cards */
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-bottom: 24px;
-    }
+      /* Stats Cards */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 24px;
+      }
 
-    .stat-box {
-      background: linear-gradient(145deg, #172033, #1E293B);
-      border-radius: 18px;
-      padding: 15px 8px;
-      text-align: center;
-      border: 1px solid rgba(255,255,255,0.05);
-      box-shadow:
-        6px 6px 14px rgba(0,0,0,0.25),
-        inset 0 1px 1px rgba(255,255,255,0.03);
-      transition: 0.25s ease;
-    }
+      .stat-box {
+        background: linear-gradient(145deg, #172033, #1e293b);
+        border-radius: 18px;
+        padding: 15px 8px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow:
+          6px 6px 14px rgba(0, 0, 0, 0.25),
+          inset 0 1px 1px rgba(255, 255, 255, 0.03);
+        transition: 0.25s ease;
+      }
 
-    .stat-box:hover {
-      transform: translateY(-4px);
-    }
+      .stat-box:hover {
+        transform: translateY(-4px);
+      }
 
-    .stat-number {
-      font-size: 28px;
-      font-weight: 700;
-      color: #60A5FA;
-    }
+      .stat-number {
+        font-size: 28px;
+        font-weight: 700;
+        color: #60a5fa;
+      }
 
-    .stat-number.red {
-      color: #EF4444;
-      text-shadow: 0 0 10px rgba(239,68,68,0.25);
-    }
+      .stat-number.red {
+        color: #ef4444;
+        text-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+      }
 
-    .stat-number.green {
-      color: #10B981;
-      text-shadow: 0 0 10px rgba(16,185,129,0.25);
-    }
+      .stat-number.green {
+        color: #10b981;
+        text-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+      }
 
-    .stat-label {
-      margin-top: 6px;
-      font-size: 11px;
-      color: #94A3B8;
-      font-weight: 500;
-    }
+      .stat-label {
+        margin-top: 6px;
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 500;
+      }
 
-    /* Section Title */
-    .section-title {
-      font-size: 11px;
-      font-weight: 700;
-      color: #64748B;
-      letter-spacing: 1.5px;
-      margin-bottom: 14px;
-    }
+      /* Section Title */
+      .section-title {
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
+        letter-spacing: 1.5px;
+        margin-bottom: 14px;
+      }
 
-    /* History Cards */
-    #history {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      min-height: 120px;
-    }
+      /* History Cards */
+      /* Recent Activity Section */
+      .activity-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        gap: 8px;
+      }
+      .filter-buttons {
+        display: flex;
+        gap: 6px;
+      }
+      .filter-btn {
+        padding: 4px 10px;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        color: #94a3b8;
+        font-size: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .filter-btn:hover {
+        background: #334155;
+        color: #e2e8f0;
+      }
+      .filter-btn.active {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+      }
+      .view-more-btn {
+        padding: 6px 12px;
+        background: transparent;
+        border: 1px solid #3b82f6;
+        border-radius: 6px;
+        color: #60a5fa;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .view-more-btn:hover {
+        background: #3b82f6;
+        color: white;
+      }
+      #history {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 120px;
+        max-height: 320px; /* Limit height */
+        overflow-y: auto; /* Add scrollbar */
+        padding-right: 4px;
+      }
+      #history::-webkit-scrollbar {
+        width: 5px;
+      }
+      #history::-webkit-scrollbar-track {
+        background: #0f172a;
+        border-radius: 3px;
+      }
+      #history::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 3px;
+      }
+      #history::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+      }
 
-    .entry {
-      background: linear-gradient(145deg, #18253D, #1F2C45);
-      border-radius: 16px;
-      padding: 14px;
-      border-left: 4px solid #334155;
-      box-shadow:
-        4px 4px 12px rgba(0,0,0,0.22),
-        inset 0 1px 1px rgba(255,255,255,0.03);
-    }
+      .entry {
+        background: linear-gradient(145deg, #18253d, #1f2c45);
+        border-radius: 16px;
+        padding: 14px;
+        border-left: 4px solid #334155;
+        box-shadow:
+          4px 4px 12px rgba(0, 0, 0, 0.22),
+          inset 0 1px 1px rgba(255, 255, 255, 0.03);
+      }
 
-    .entry.danger {
-      border-left-color: #EF4444;
-    }
+      .entry.danger {
+        border-left-color: #ef4444;
+      }
 
-    .entry.warn {
-      border-left-color: #F59E0B;
-    }
+      .entry.warn {
+        border-left-color: #f59e0b;
+      }
 
-    .entry.safe {
-      border-left-color: #10B981;
-    }
+      .entry.safe {
+        border-left-color: #10b981;
+      }
 
-    .entry-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
+      .entry-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
 
-    .score {
-      font-size: 13px;
-      font-weight: 700;
-    }
+      .score {
+        font-size: 13px;
+        font-weight: 700;
+      }
 
-    .time {
-      font-size: 10px;
-      color: #64748B;
-    }
+      .time {
+        font-size: 10px;
+        color: #64748b;
+      }
 
-    .prompt-snip {
-      font-size: 12px;
-      color: #B8C8DB;
-      line-height: 1.5;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+      .prompt-snip {
+        font-size: 12px;
+        color: #b8c8db;
+        line-height: 1.5;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
-    /* Empty State */
-    .empty-msg {
-      text-align: center;
-      padding: 28px 10px;
-      background: linear-gradient(145deg, #18253D, #1F2C45);
-      border-radius: 16px;
-      font-size: 12px;
-      color: #64748B;
-      border: 1px dashed #334155;
-    }
+      /* Empty State */
+      .empty-msg {
+        text-align: center;
+        padding: 28px 10px;
+        background: linear-gradient(145deg, #18253d, #1f2c45);
+        border-radius: 16px;
+        font-size: 12px;
+        color: #64748b;
+        border: 1px dashed #334155;
+      }
 
-    /* Dashboard Button */
-    .dashboard-btn {
-      display: block;
-      width: 100%;
-      margin-top: 14px;
-      padding: 10px 14px;
-      background: #0F172A;
-      color: #60A5FA;
-      border: 1px solid #334155;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-      cursor: pointer;
-      text-align: center;
-      transition: background 0.2s, border-color 0.2s, transform 0.15s;
-    }
-    .dashboard-btn:hover {
-      background: #1E293B;
-      border-color: #60A5FA;
-      transform: translateY(-1px);
-    }
-    .dashboard-btn:active { transform: translateY(0); }
+      /* Dashboard Button */
+      .dashboard-btn {
+        display: block;
+        width: 100%;
+        margin-top: 14px;
+        padding: 10px 14px;
+        background: #0f172a;
+        color: #60a5fa;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        cursor: pointer;
+        text-align: center;
+        transition:
+          background 0.2s,
+          border-color 0.2s,
+          transform 0.15s;
+      }
+      .dashboard-btn:hover {
+        background: #1e293b;
+        border-color: #60a5fa;
+        transform: translateY(-1px);
+      }
+      .dashboard-btn:active {
+        transform: translateY(0);
+      }
 
-    /* Footer */
-    .footer {
-      margin-top: 14px;
-      padding-top: 14px;
-      border-top: 1px solid rgba(255,255,255,0.05);
-      text-align: center;
-      font-size: 11px;
-      color: #64748B;
-    }
+      /* Footer */
+      .footer {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        text-align: center;
+        font-size: 11px;
+        color: #64748b;
+      }
 
-    .status-dot {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #10B981;
-      box-shadow: 0 0 12px rgba(16,185,129,0.55);
-      margin-right: 6px;
-      vertical-align: middle;
-    }
-    /* Threat Feed Ticker */
-    @keyframes scrollFeed {
-      0%   { transform: translateY(0); }
-      100% { transform: translateY(-50%); }
-    }
-    .ticker-wrap {
-      max-height: 90px;
-      overflow: hidden;
-      position: relative;
-      background: #0A1020;
-      border: 1px solid #1E293B;
-      border-radius: 8px;
-      margin-bottom: 12px;
-    }
-    #threat-ticker-scroll {
-      animation: scrollFeed 28s linear infinite;
-    }
-    #threat-ticker-scroll:hover { animation-play-state: paused; }
-    .ticker-item {
-      padding: 6px 10px;
-      border-bottom: 1px solid #1A2540;
-      font-size: 10px;
-      line-height: 1.5;
-    }
-    .ticker-item:last-child { border-bottom: none; }
-    .ticker-severity {
-      display: inline-block;
-      padding: 1px 5px;
-      border-radius: 3px;
-      font-weight: 700;
-      margin-right: 5px;
-      font-size: 9px;
-      vertical-align: middle;
-    }
-    .ticker-severity.CRITICAL { background: #EF4444; color: #fff; }
-    .ticker-severity.HIGH     { background: #F59E0B; color: #fff; }
-    .ticker-severity.MEDIUM   { background: #3B82F6; color: #fff; }
-    .ticker-severity.LOW      { background: #64748B; color: #fff; }
-    .ticker-title { color: #CBD5E1; vertical-align: middle; }
-    .ticker-time  { color: #475569; font-size: 9px; margin-left: 5px; vertical-align: middle; }
+      .status-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.55);
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+      /* Threat Feed Ticker */
+      @keyframes scrollFeed {
+        0% {
+          transform: translateY(0);
+        }
+        100% {
+          transform: translateY(-50%);
+        }
+      }
+      .ticker-wrap {
+        max-height: 140px; /* Increased from 90px */
+        overflow: hidden;
+        position: relative;
+        background: #0a1020;
+        border: 1px solid #1e293b;
+        border-radius: 10px;
+        margin-bottom: 14px;
+      }
+      #threat-ticker-scroll {
+        animation: scrollFeed 35s linear infinite;
+      }
+      #threat-ticker-scroll:hover {
+        animation-play-state: paused;
+      }
+      .ticker-item {
+        padding: 8px 12px; /* Increased padding */
+        border-bottom: 1px solid #1a2540;
+        font-size: 11px; /* Slightly larger text */
+        line-height: 1.6;
+      }
+      .ticker-item:last-child {
+        border-bottom: none;
+      }
+      .ticker-severity {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+        margin-right: 6px;
+        font-size: 10px;
+        vertical-align: middle;
+      }
+      .ticker-severity.CRITICAL {
+        background: #ef4444;
+        color: #fff;
+      }
+      .ticker-severity.HIGH {
+        background: #f59e0b;
+        color: #fff;
+      }
+      .ticker-severity.MEDIUM {
+        background: #3b82f6;
+        color: #fff;
+      }
+      .ticker-severity.LOW {
+        background: #64748b;
+        color: #fff;
+      }
+      .ticker-title {
+        color: #cbd5e1;
+        vertical-align: middle;
+      }
+      .ticker-time {
+        color: #475569;
+        font-size: 10px;
+        margin-left: 6px;
+        vertical-align: middle;
+      }
 
-    /* ── HONEYPOT MODE TOGGLE ── */
-    .honeypot-section {
-      background: linear-gradient(135deg, #1E293B 0%, #2D1B0E 100%);
-      border: 1px solid #78350F;
-      border-radius: 10px;
-      padding: 14px;
-      margin-bottom: 14px;
-      transition: box-shadow 0.3s ease;
-    }
-    .honeypot-section.active {
-      box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
-    }
-    .honeypot-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .honeypot-title {
-      color: #F59E0B;
-      font-size: 13px;
-      font-weight: bold;
-      letter-spacing: 0.5px;
-    }
-    .honeypot-subtitle {
-      color: #A16207;
-      font-size: 10px;
-      margin-top: 2px;
-    }
-    /* Toggle Switch */
-    .honeypot-toggle-wrapper {
-      position: relative;
-      width: 44px;
-      height: 24px;
-    }
-    #honeypot-toggle {
-      opacity: 0;
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      cursor: pointer;
-      z-index: 2;
-    }
-    .honeypot-toggle-track {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 44px;
-      height: 24px;
-      background: #334155;
-      border-radius: 12px;
-      transition: background 0.3s ease;
-    }
-    .honeypot-toggle-knob {
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 18px;
-      height: 18px;
-      background: white;
-      border-radius: 50%;
-      transition: transform 0.3s ease;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    #honeypot-toggle:checked + .honeypot-toggle-track {
-      background: #F59E0B;
-    }
-    #honeypot-toggle:checked + .honeypot-toggle-track + .honeypot-toggle-knob {
-      transform: translateX(20px);
-    }
-    #honeypot-toggle:checked + .honeypot-toggle-track {
-      box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
-    }
-    .honeypot-status {
-      margin-top: 10px;
-      font-size: 11px;
-      color: #94A3B8;
-    }
-    .honeypot-status.active {
-      color: #F59E0B;
-    }
-    .honeypot-count {
-      margin-top: 4px;
-      font-size: 10px;
-      color: #64748B;
-    }
-
-  </style>
-</head>
-<body>
-
-  <div class="container">
-
-    <!-- Header -->
-    <div class="header">
-      <h1>🛡️ Prompt Guardian</h1>
-      <div class="subtitle">
-        AI Prompt Injection Firewall
+      /* ── HONEYPOT MODE TOGGLE ── */
+      .honeypot-section {
+        background: linear-gradient(135deg, #1e293b 0%, #2d1b0e 100%);
+        border: 1px solid #78350f;
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 14px;
+        transition: box-shadow 0.3s ease;
+      }
+      .honeypot-section.active {
+        box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+      }
+      .honeypot-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .honeypot-title {
+        color: #f59e0b;
+        font-size: 13px;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+      }
+      .honeypot-subtitle {
+        color: #a16207;
+        font-size: 10px;
+        margin-top: 2px;
+      }
+      /* Toggle Switch */
+      .honeypot-toggle-wrapper {
+        position: relative;
+        width: 44px;
+        height: 24px;
+      }
+      #honeypot-toggle {
+        opacity: 0;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+        z-index: 2;
+      }
+      .honeypot-toggle-track {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 44px;
+        height: 24px;
+        background: #334155;
+        border-radius: 12px;
+        transition: background 0.3s ease;
+      }
+      .honeypot-toggle-knob {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        background: white;
+        border-radius: 50%;
+        transition: transform 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      #honeypot-toggle:checked + .honeypot-toggle-track {
+        background: #f59e0b;
+      }
+      #honeypot-toggle:checked
+        + .honeypot-toggle-track
+        + .honeypot-toggle-knob {
+        transform: translateX(20px);
+      }
+      #honeypot-toggle:checked + .honeypot-toggle-track {
+        box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+      }
+      .honeypot-status {
+        margin-top: 10px;
+        font-size: 11px;
+        color: #94a3b8;
+      }
+      .honeypot-status.active {
+        color: #f59e0b;
+      }
+      .honeypot-count {
+        margin-top: 4px;
+        font-size: 10px;
+        color: #64748b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <h1>🛡️ Prompt Guardian</h1>
+        <div class="subtitle">AI Prompt Injection Firewall</div>
       </div>
-    </div>
 
-    <!-- Stats -->
-    <div class="stats">
-
-      <div class="stat-box">
-        <div class="stat-number" id="total">0</div>
-        <div class="stat-label">Analyzed</div>
-      </div>
-
-      <div class="stat-box">
-        <div class="stat-number red" id="blocked">0</div>
-        <div class="stat-label">Blocked</div>
-      </div>
-
-      <div class="stat-box">
-        <div class="stat-number green" id="safe">0</div>
-        <div class="stat-label">Safe</div>
-      </div>
-
-      <div class="stat-box">
-        <div class="stat-number" id="multilingual" style="color:#7C3AED">0</div>
-        <div class="stat-label">Multilingual</div>
-      </div>
-
-    </div>
-
-    <!-- Honeypot Mode Section -->
-    <div class="honeypot-section" id="honeypot-section">
-      <div class="honeypot-header">
-        <div>
-          <div class="honeypot-title">🍯 HONEYPOT MODE</div>
-          <div class="honeypot-subtitle">Allow threats through for intelligence gathering</div>
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-number" id="total">0</div>
+          <div class="stat-label">Analyzed</div>
         </div>
-        <div class="honeypot-toggle-wrapper">
-          <input type="checkbox" id="honeypot-toggle">
-          <div class="honeypot-toggle-track"></div>
-          <div class="honeypot-toggle-knob"></div>
+
+        <div class="stat-box">
+          <div class="stat-number red" id="blocked">0</div>
+          <div class="stat-label">Blocked</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-number green" id="safe">0</div>
+          <div class="stat-label">Safe</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-number" id="multilingual" style="color: #7c3aed">
+            0
+          </div>
+          <div class="stat-label">Multilingual</div>
         </div>
       </div>
-      <div class="honeypot-status" id="honeypot-status">🔒 Normal Protection — Threats are blocked</div>
-      <div class="honeypot-count" id="honeypot-count">Honeypot events this session: 0</div>
-    </div>
 
-    <!-- Attack Breakdown Mini Chart -->
-    <div class="section-title" style="margin-top:16px;">
-      ATTACK BREAKDOWN
-    </div>
-    <div id="mini-chart-container" style="display:flex;justify-content:center;margin-bottom:12px;min-height:130px;align-items:center;">
-      <!-- renderAttackChart() populates this -->
-    </div>
-
-    <!-- Session Timeline Preview -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
-      <div class="section-title" style="margin:0;">SESSION TIMELINE</div>
-      <button id="mini-open-dashboard" style="background:none;border:none;color:#60A5FA;font-size:11px;cursor:pointer;padding:0;">View Full →</button>
-    </div>
-    <div
-      id="mini-timeline-container"
-      style="width:100%;height:60px;position:relative;background:#0F1729;border:1px solid #1E293B;border-radius:8px;overflow:hidden;margin-top:8px;margin-bottom:12px;"
-    ></div>
-
-    <!-- Recent Activity -->
-    <div class="section-title">
-      RECENT ACTIVITY
-    </div>
-
-    <div id="history">
-      <div class="empty-msg">
-        No recent prompts analyzed yet
-      </div>
-    </div>
-
-    <!-- Dashboard Button -->
-    <button class="dashboard-btn" id="open-dashboard">📊 Open Full Threat Dashboard</button>
-
-    <!-- Export Report Button -->
-    <button class="dashboard-btn" id="export-report-btn"
-            style="color:#F59E0B;margin-top:6px;">
-      📄 Export Forensic Report (PDF)
-    </button>
-
-    <!-- Global Threat Feed Ticker -->
-    <div class="section-title" style="margin-top:14px;">🌐 GLOBAL THREAT FEED</div>
-    <div class="ticker-wrap">
-      <div id="threat-ticker-scroll">
-        <!-- popup.js populates ticker items here -->
-        <div class="ticker-item" style="color:#475569;text-align:center;padding:16px;">
-          Loading threat feed…
+      <!-- Honeypot Mode Section -->
+      <div class="honeypot-section" id="honeypot-section">
+        <div class="honeypot-header">
+          <div>
+            <div class="honeypot-title">🍯 HONEYPOT MODE</div>
+            <div class="honeypot-subtitle">
+              Allow threats through for intelligence gathering
+            </div>
+          </div>
+          <div class="honeypot-toggle-wrapper">
+            <input type="checkbox" id="honeypot-toggle" />
+            <div class="honeypot-toggle-track"></div>
+            <div class="honeypot-toggle-knob"></div>
+          </div>
+        </div>
+        <div class="honeypot-status" id="honeypot-status">
+          🔒 Normal Protection — Threats are blocked
+        </div>
+        <div class="honeypot-count" id="honeypot-count">
+          Honeypot events this session: 0
         </div>
       </div>
+
+      <!-- Attack Breakdown Mini Chart -->
+      <div class="section-title" style="margin-top: 16px">ATTACK BREAKDOWN</div>
+      <div
+        id="mini-chart-container"
+        style="
+          display: flex;
+          justify-content: center;
+          margin-bottom: 12px;
+          min-height: 130px;
+          align-items: center;
+        "
+      >
+        <!-- renderAttackChart() populates this -->
+      </div>
+
+      <!-- Session Timeline Preview -->
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 2px;
+        "
+      >
+        <div class="section-title" style="margin: 0">SESSION TIMELINE</div>
+        <button
+          id="mini-open-dashboard"
+          style="
+            background: none;
+            border: none;
+            color: #60a5fa;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 0;
+          "
+        >
+          View Full →
+        </button>
+      </div>
+      <div
+        id="mini-timeline-container"
+        style="
+          width: 100%;
+          height: 60px;
+          position: relative;
+          background: #0f1729;
+          border: 1px solid #1e293b;
+          border-radius: 8px;
+          overflow: hidden;
+          margin-top: 8px;
+          margin-bottom: 12px;
+        "
+      ></div>
+
+      <!-- Recent Activity -->
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 16px;
+          margin-bottom: 10px;
+        "
+      >
+        <div class="section-title" style="margin: 0">RECENT ACTIVITY</div>
+        <div class="filter-buttons">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="BLOCK">🚨 Blocked</button>
+          <button class="filter-btn" data-filter="ALLOW">✅ Safe</button>
+        </div>
+      </div>
+
+      <div id="history">
+        <div class="empty-msg">No recent prompts analyzed yet</div>
+      </div>
+
+      <div style="text-align: center; margin-top: 10px">
+        <button id="view-more-btn" class="view-more-btn" style="display: none">
+          View More ↓
+        </button>
+      </div>
+
+      <!-- Dashboard Button -->
+      <button class="dashboard-btn" id="open-dashboard">
+        📊 Open Full Threat Dashboard
+      </button>
+
+      <!-- Export Report Button -->
+      <button
+        class="dashboard-btn"
+        id="export-report-btn"
+        style="color: #f59e0b; margin-top: 6px"
+      >
+        📄 Export Forensic Report (PDF)
+      </button>
+
+      <!-- Global Threat Feed Ticker -->
+      <div class="section-title" style="margin-top: 14px">
+        🌐 GLOBAL THREAT FEED
+      </div>
+      <div class="ticker-wrap">
+        <div id="threat-ticker-scroll">
+          <!-- popup.js populates ticker items here -->
+          <div
+            class="ticker-item"
+            style="color: #475569; text-align: center; padding: 16px"
+          >
+            Loading threat feed…
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <span class="status-dot"></span>
+        Backend: localhost:5000
+      </div>
     </div>
 
-    <!-- Footer -->
-    <div class="footer">
-      <span class="status-dot"></span>
-      Backend: localhost:5000
-    </div>
-
-  </div>
-
-  <!-- chart.js must load BEFORE popup.js -->
-  <script src="chart.js"></script>
-  <script src="popup.js"></script>
-  <script>
-    document.getElementById('open-dashboard').addEventListener('click', () => {
-      chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') });
-    });
-  </script>
-
-</body>
+    <!-- chart.js must load BEFORE popup.js -->
+    <script src="chart.js"></script>
+    <script src="popup.js"></script>
+    <script>
+      document
+        .getElementById("open-dashboard")
+        .addEventListener("click", () => {
+          chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
+        });
+    </script>
+  </body>
 </html>
-  
