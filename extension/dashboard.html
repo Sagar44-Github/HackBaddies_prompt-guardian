@@ -321,6 +321,116 @@
 
     /* Tooltip via title — enhanced */
     [title] { cursor: help; }
+
+    /* ── THREAT INTEL CARD ── */
+    .threat-intel-card {
+      grid-column: 1 / -1;
+      background: #10182C;
+      border: 1px solid #212943;
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .ti-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+    .ti-card-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #F1F5F9;
+    }
+    .ti-subtitle {
+      font-size: 12px;
+      color: #64748B;
+      margin-bottom: 20px;
+    }
+    .ti-last-updated {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #475569;
+      white-space: nowrap;
+    }
+    #threat-intel-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .intel-card {
+      background: #0A0E1A;
+      border: 1px solid #212943;
+      border-radius: 10px;
+      padding: 14px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .intel-card:hover {
+      transform: translateY(-3px);
+      border-color: #60A5FA;
+    }
+    .intel-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .intel-severity {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: white;
+    }
+    .intel-severity.CRITICAL { background: #EF4444; }
+    .intel-severity.HIGH     { background: #F59E0B; }
+    .intel-severity.MEDIUM   { background: #3B82F6; }
+    .intel-severity.LOW      { background: #64748B; }
+    .intel-cvss {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #64748B;
+    }
+    .intel-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #E2E8F0;
+      margin: 4px 0 6px 0;
+      line-height: 1.35;
+    }
+    .intel-description {
+      font-size: 11px;
+      color: #64748B;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    .intel-models {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .intel-model-tag {
+      background: #1E2D4A;
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-size: 9px;
+      color: #94A3B8;
+    }
+    .intel-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #1E2D4A;
+      font-size: 10px;
+      color: #64748B;
+    }
+    .intel-meta-item strong { color: #94A3B8; margin-right: 2px; }
+    .intel-status { font-weight: 700; }
+    .intel-status.Patched                     { color: #10B981; }
+    .intel-status.Active-Threat               { color: #EF4444; }
+    .intel-status.Under-Investigation         { color: #F59E0B; }
+    .intel-status.Mitigated-by-Prompt-Guardian { color: #60A5FA; }
   </style>
 </head>
 <body>
@@ -413,6 +523,21 @@
     <div class="dashboard-footer">
       <span id="footer-session">Session started: —</span>
       &nbsp;|&nbsp; Engine: Regex + Groq Llama3 + Weighted Risk Scoring
+    </div>
+
+    <!-- Row 4: Global Threat Intelligence Grid -->
+    <div class="section-card full-width threat-intel-card">
+      <div class="ti-card-header">
+        <div>
+          <h2>🌐 Global Threat Intelligence</h2>
+          <div class="ti-subtitle">Live feed from OWASP LLM, MITRE ATLAS, and security research community</div>
+        </div>
+        <div class="ti-last-updated" id="feed-last-updated">Fetching…</div>
+      </div>
+      <div id="threat-intel-grid">
+        <!-- dashboard.js populates threat cards here -->
+        <div style="grid-column:1/-1;text-align:center;padding:32px;color:#475569;">Loading threat intelligence…</div>
+      </div>
     </div>
 
   </div>

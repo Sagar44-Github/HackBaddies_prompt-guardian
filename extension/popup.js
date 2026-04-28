@@ -6,6 +6,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // Backend health check
     checkHealth();
     setInterval(checkHealth, 10000);
+
+    // Global threat intelligence ticker (load once)
+    loadThreatFeed();
 });
 
 function loadData() {
@@ -141,4 +144,44 @@ function escapeHtml(str) {
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
+}
+
+// ── RELATIVE TIME HELPER ───────────────────────────────────────────────────────
+function getRelativeTime(isoString) {
+    if (!isoString) return '';
+    const diffSec = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
+    if (diffSec < 3600)  return Math.max(1, Math.floor(diffSec / 60)) + 'm ago';
+    if (diffSec < 86400) return Math.floor(diffSec / 3600) + 'h ago';
+    return Math.floor(diffSec / 86400) + 'd ago';
+}
+
+// ── THREAT FEED TICKER ────────────────────────────────────────────────────────────
+function loadThreatFeed() {
+    const ticker = document.getElementById('threat-ticker-scroll');
+    if (!ticker) return;
+
+    fetch('http://127.0.0.1:5000/threat-feed')
+        .then(res => res.json())
+        .then(data => {
+            const feed = data.feed || [];
+            if (feed.length === 0) throw new Error('empty feed');
+
+            // Build ticker items HTML
+            const itemsHtml = feed.map(t => `
+                <div class="ticker-item">
+                    <span class="ticker-severity ${t.severity}">${t.severity}</span>
+                    <span class="ticker-title">${escapeHtml(t.title)}</span>
+                    <span class="ticker-time">${getRelativeTime(t.discovered_at)}</span>
+                </div>
+            `).join('');
+
+            // Duplicate content for seamless infinite scroll loop
+            ticker.innerHTML = itemsHtml + itemsHtml;
+        })
+        .catch(() => {
+            ticker.innerHTML = `
+                <div class="ticker-item" style="color:#475569;text-align:center;padding:16px;">
+                    ⚠️ Feed offline — backend not reachable
+                </div>`;
+        });
 }

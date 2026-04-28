@@ -218,4 +218,66 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTimeline(history);
     renderFooter(history);
   });
+
+  // Threat intelligence feed loads independently (doesn't need pg_history)
+  loadGlobalThreatIntel();
 });
+
+// ── RELATIVE TIME (dashboard context) ────────────────────────────────────────
+function getRelativeTime(isoString) {
+  if (!isoString) return '—';
+  const diffSec = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
+  if (diffSec < 3600)  return Math.max(1, Math.floor(diffSec / 60)) + 'm ago';
+  if (diffSec < 86400) return Math.floor(diffSec / 3600) + 'h ago';
+  return Math.floor(diffSec / 86400) + 'd ago';
+}
+
+// ── GLOBAL THREAT INTELLIGENCE FEED ─────────────────────────────────────────
+async function loadGlobalThreatIntel() {
+  const grid      = document.getElementById('threat-intel-grid');
+  const lastUpdEl = document.getElementById('feed-last-updated');
+  if (!grid) return;
+
+  try {
+    const res  = await fetch('http://127.0.0.1:5000/threat-feed');
+    const data = await res.json();
+    const feed = data.feed || [];
+
+    if (lastUpdEl && data.last_updated) {
+      lastUpdEl.textContent = 'Last updated: ' + getRelativeTime(data.last_updated);
+    }
+
+    if (feed.length === 0) throw new Error('empty feed');
+
+    grid.innerHTML = feed.map(t => {
+      const statusCls = (t.mitigation_status || '').replace(/\s+/g, '-');
+      const modelTags = (t.affected_models || [])
+        .map(m => `<span class="intel-model-tag">${escapeHtml(m)}</span>`).join('');
+
+      return `
+        <div class="intel-card">
+          <div class="intel-card-header">
+            <span class="intel-severity ${t.severity}">${t.severity}</span>
+            <span class="intel-cvss">CVSS\u00a0${(t.cvss_score || 0).toFixed(1)}</span>
+          </div>
+          <div class="intel-title">${escapeHtml(t.title)}</div>
+          <div class="intel-description">${escapeHtml(t.description)}</div>
+          <div class="intel-models">${modelTags}</div>
+          <div class="intel-meta">
+            <div class="intel-meta-item"><strong>ID:</strong> ${escapeHtml(t.id)}</div>
+            <div class="intel-meta-item"><strong>Source:</strong> ${escapeHtml(t.source)}</div>
+            <div class="intel-meta-item"><strong>Discovered:</strong> ${getRelativeTime(t.discovered_at)}</div>
+            <div class="intel-meta-item"><strong>Status:</strong>
+              <span class="intel-status ${statusCls}">${escapeHtml(t.mitigation_status)}</span>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+  } catch (err) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px;color:#475569;">
+      ⚠️ Threat feed unavailable. Backend not reachable.
+    </div>`;
+    if (lastUpdEl) lastUpdEl.textContent = 'Unavailable';
+  }
+}
